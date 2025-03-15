@@ -14,36 +14,36 @@ type GalleryImage = {
 // Gallery images data
 const galleryImages: GalleryImage[] = [
   {
-    src: '/images/Flux_Dev_A_suave_charismatic_black_man_exudes_cool_confidence__0.jpeg',
-    alt: 'MC OJ performing live'
+    src: '/images/gallery_image_1.jpg',
+    alt: 'Gallery image 1'
   },
   {
-    src: '/images/Flux_Dev_A_suave_charismatic_black_man_exudes_cool_confidence__1.jpeg',
-    alt: 'MC OJ in action'
+    src: '/images/gallery_image_2.jpg',
+    alt: 'Gallery image 2'
   },
   {
-    src: '/images/Flux_Dev_A_suave_charismatic_black_man_exudes_cool_confidence__2.jpeg',
-    alt: 'MC OJ on stage'
+    src: '/images/gallery_image_3.jpg',
+    alt: 'Gallery image 3'
   },
   {
-    src: '/images/Flux_Dev_A_suave_charismatic_black_man_exudes_cool_confidence__3.jpeg',
-    alt: 'MC OJ performing'
+    src: '/images/gallery_image_4.jpg',
+    alt: 'Gallery image 4'
   },
   {
-    src: '/images/Flux_Dev_A_strikingly_handsome_40yearold_Black_man_exudes_conf_0.jpeg',
-    alt: 'MC OJ portrait'
+    src: '/images/gallery_image_5.jpg',
+    alt: 'Gallery image 5'
   },
   {
-    src: '/images/Flux_Dev_A_strikingly_handsome_40yearold_Black_man_exudes_conf_1.jpeg',
-    alt: 'MC OJ in studio'
+    src: '/images/gallery_image_6.jpg',
+    alt: 'Gallery image 6'
   },
   {
-    src: '/images/Flux_Dev_A_strikingly_handsome_40yearold_Black_man_exudes_conf_2.jpeg',
-    alt: 'MC OJ behind the scenes'
+    src: '/images/gallery_image_7.jpg',
+    alt: 'Gallery image 7'
   },
   {
-    src: '/images/Flux_Dev_A_strikingly_handsome_40yearold_Black_man_exudes_conf_3.jpeg',
-    alt: 'MC OJ in action'
+    src: '/images/gallery_image_8.jpg',
+    alt: 'Gallery image 8'
   }
 ];
 

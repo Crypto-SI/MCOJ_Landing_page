@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -43,16 +44,30 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 flex items-center">
             <Link 
               href="#hero"
               onClick={(e) => {
                 e.preventDefault();
                 scrollToSection('#hero');
               }}
-              className="text-brand-gold font-bank-gothic text-xl hover:text-brand-gold/80 transition-colors"
+              className="flex items-center space-x-2"
             >
-              MC OJ
+              <div className="relative w-10 h-10">
+                <Image
+                  src="/brand/OJ logo.jpeg"
+                  alt="MC OJ Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <span className="text-brand-gold font-bank-gothic text-2xl font-bold tracking-wider hover:text-brand-gold/80 transition-colors">
+                MC OJ
+              </span>
+              <span className="hidden sm:inline-block text-white text-sm font-light">
+                | Professional MC & Host
+              </span>
             </Link>
           </div>
 
