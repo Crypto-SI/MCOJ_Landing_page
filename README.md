@@ -21,6 +21,7 @@ We're talking about sections that hit harder than a garage bassline:
 - 📅 **Events Diary** - Where's the next party at? All listed here!
 - 📝 **Booking Form** - Want MC OJ at your event? Say no more!
 - 🔗 **Social Links** - Stay connected with the movement
+- 🔐 **Admin Area** - Secure backend access for site management
 
 ## 🛠 Quick Start
 
@@ -47,6 +48,7 @@ Listen up producers and developers, here's what we're working with:
 - **Framework**: Next.js 14 (App Router)
 - **Styling**: Tailwind CSS
 - **Icons**: Heroicons
+- **Image Processing**: Sharp for dynamic image resizing
 - **Animations**: Smooth scrolling and transitions
 - **Components**: 100% custom-built, no templates!
 
@@ -65,9 +67,12 @@ Keeping it organized like a proper setlist:
 ```
 src/
 ├── app/              # Main app layout and pages
+│   ├── admin/        # Admin area (login, dashboard, gallery management)
+│   └── api/          # Backend API endpoints
 ├── components/       # Custom components (Navigation, Gallery, etc.)
-├── styles/          # Global styles and Tailwind config
-└── public/          # Static assets and images
+├── utils/            # Utility functions
+├── styles/           # Global styles and Tailwind config
+└── public/           # Static assets and images
 ```
 
 ## 🎪 Features Breakdown
@@ -82,6 +87,18 @@ src/
 - Grid layout with hover effects
 - Optimized image loading
 
+### Admin Area
+- Secure login system
+- Dashboard with site management tools
+- Content management capabilities
+
+### Gallery Management
+- Upload new images with automatic processing
+- Organize gallery content with simple UI
+- Archive and restore images as needed
+- Enforce quality standards with automatic resizing
+- Finalize changes to update the public gallery
+
 ### Events Diary
 - Upcoming and past events
 - Filtering capabilities
@@ -91,6 +108,36 @@ src/
 - Easy-to-use interface
 - Form validation
 - Success confirmation
+
+## 🖼️ Gallery Management System
+
+Our brand new gallery management system makes it easy to keep MC OJ's image gallery fresh and professional:
+
+### Key Features
+- **Image Requirements Enforcement**: Ensures all images meet quality standards
+  - Supported formats: JPG and PNG
+  - Ideal resolution: 1200×800 pixels
+  - Maximum file size: 5MB
+  - Automatic resizing while preserving aspect ratio
+
+- **Placeholder System**: Organized gallery with 8 image slots
+  - Easily manage which images appear in which positions
+  - Visual representation of the gallery layout
+
+- **Archive System**: Never lose content
+  - Archive images instead of deleting them
+  - Restore archived images to any available position
+  - Permanently delete images when no longer needed
+
+- **FINALISE Button**: One-click publishing
+  - Update the public-facing gallery with current selections
+  - Seamless transition from admin to public view
+
+### How to Access
+1. Navigate to `/admin/login`
+2. Enter admin credentials
+3. Access the gallery management through the dashboard
+4. Make changes and click "FINALISE GALLERY" to publish
 
 ## 🤝 Big Up The Community!
 
