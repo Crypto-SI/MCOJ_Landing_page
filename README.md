@@ -91,6 +91,8 @@ src/
 - Secure login system
 - Dashboard with site management tools
 - Content management capabilities
+- Events management with CRUD functionality
+- Gallery management with archive system
 
 ### Gallery Management
 - Upload new images with automatic processing
@@ -103,6 +105,25 @@ src/
 - Upcoming and past events
 - Filtering capabilities
 - Direct booking links
+- Google Maps integration for venue directions
+
+### Events Management System
+Our comprehensive events management system allows for complete control over event listings:
+
+#### Key Features
+- **Full CRUD Functionality**: Create, Read, Update, and Delete events with an intuitive interface
+- **Edit Any Event**: Easily modify details of existing events with one click
+- **Postcode Integration**: Add venue postcodes to enable the "Get Directions" feature
+- **Google Maps Integration**: Automatically generated directions links for events with postcodes
+- **Date Sorting**: Events automatically sorted by date with upcoming events prioritized
+- **Mobile-Optimized**: Fully responsive design works on all devices
+
+#### How to Use
+1. Navigate to `/admin/events` after logging in
+2. Add new events using the form
+3. Edit existing events by clicking the pencil icon
+4. Delete events with the trash icon
+5. Changes appear immediately on the public Events Diary
 
 ### Booking Form
 - Easy-to-use interface

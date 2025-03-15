@@ -4,9 +4,24 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+// Event type definition
+interface Event {
+  id: string;
+  date: string;
+  venue: string;
+  eventName: string;
+  address: string;
+  timeStart: string;
+  timeEnd: string;
+  ticketLink: string;
+  position: number;
+}
+
 export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [events, setEvents] = useState<Event[]>([])
+  const [galleryCount, setGalleryCount] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -16,9 +31,34 @@ export default function AdminDashboard() {
       router.push('/admin/login')
     } else {
       setIsAuthenticated(true)
+      // Fetch events and gallery counts
+      fetchEvents()
     }
     setIsLoading(false)
   }, [router])
+
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch('/api/events')
+      if (response.ok) {
+        const data = await response.json()
+        setEvents(data.events || [])
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error)
+    }
+  }
+
+  // Helper to determine if an event is upcoming
+  const isUpcomingEvent = (dateString: string) => {
+    const eventDate = new Date(dateString)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Set to beginning of today
+    return eventDate >= today
+  }
+
+  // Count upcoming events
+  const upcomingEventsCount = events.filter(event => isUpcomingEvent(event.date)).length
 
   if (isLoading) {
     return (
@@ -62,6 +102,20 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
+        {/* Events Management Card */}
+        <div className="bg-gray-900 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-700">
+          <h2 className="text-xl font-bold mb-4 text-yellow-400">Events Management</h2>
+          <p className="text-yellow-300 mb-4">
+            Add, edit, or remove upcoming events displayed on your website.
+          </p>
+          <Link 
+            href="/admin/events"
+            className="inline-block bg-yellow-500 text-black px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors font-bold"
+          >
+            Manage Events
+          </Link>
+        </div>
+
         {/* Stats Card - Placeholder for future functionality */}
         <div className="bg-gray-900 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-700">
           <h2 className="text-xl font-bold mb-4 text-yellow-400">Website Statistics</h2>
@@ -97,11 +151,11 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="border border-gray-700 p-4 rounded-md bg-black">
             <p className="text-yellow-300 text-sm">Total Gallery Images</p>
-            <p className="text-2xl font-bold text-yellow-400">0</p>
+            <p className="text-2xl font-bold text-yellow-400">{galleryCount}</p>
           </div>
           <div className="border border-gray-700 p-4 rounded-md bg-black">
             <p className="text-yellow-300 text-sm">Upcoming Events</p>
-            <p className="text-2xl font-bold text-yellow-400">0</p>
+            <p className="text-2xl font-bold text-yellow-400">{upcomingEventsCount}</p>
           </div>
           <div className="border border-gray-700 p-4 rounded-md bg-black">
             <p className="text-yellow-300 text-sm">New Booking Requests</p>

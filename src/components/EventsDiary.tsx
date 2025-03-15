@@ -1,91 +1,79 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CalendarIcon, MapPinIcon, TicketIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 // Define types
 type EventStatus = 'upcoming' | 'past' | 'canceled';
 
+// Define our Event type to match the one used in the admin section
 type Event = {
   id: string;
-  title: string;
+  eventName: string;
   date: string;
-  time: string;
   venue: string;
-  location: string;
+  address: string;
+  postcode?: string; // Add optional postcode
+  timeStart: string;
+  timeEnd: string;
   ticketLink?: string;
-  description: string;
-  status: EventStatus;
+  position: number;
+  // We'll derive the status based on date
 };
-
-// Sample events data
-const eventsData: Event[] = [
-  {
-    id: '1',
-    title: 'UK Garage Classics',
-    date: '2023-06-15',
-    time: '22:00 - 03:00',
-    venue: 'Club Empire',
-    location: 'London, UK',
-    ticketLink: 'https://tickets.example.com/ukgarage',
-    description: 'A night of classic UK Garage hits featuring MC OJ on the mic alongside top DJs.',
-    status: 'upcoming',
-  },
-  {
-    id: '2',
-    title: 'Summer Vibes Festival',
-    date: '2023-07-22',
-    time: '14:00 - 22:00',
-    venue: 'Victoria Park',
-    location: 'London, UK',
-    ticketLink: 'https://tickets.example.com/summerfest',
-    description: 'The biggest summer festival with multiple stages and MC OJ hosting the Garage tent.',
-    status: 'upcoming',
-  },
-  {
-    id: '3',
-    title: 'Throwback Thursday',
-    date: '2023-08-10',
-    time: '21:00 - 02:00',
-    venue: 'Rhythm Lounge',
-    location: 'Manchester, UK',
-    ticketLink: 'https://tickets.example.com/throwback',
-    description: 'A journey through the golden era of UK Garage with MC OJ at the helm.',
-    status: 'upcoming',
-  },
-  {
-    id: '4',
-    title: 'Bank Holiday Special',
-    date: '2023-08-28',
-    time: '16:00 - 02:00',
-    venue: 'Sky Garden',
-    location: 'Birmingham, UK',
-    ticketLink: 'https://tickets.example.com/bankholiday',
-    description: 'Bank holiday garage party with a lineup of legendary MCs and DJs.',
-    status: 'upcoming',
-  },
-  {
-    id: '5',
-    title: 'Urban Beats',
-    date: '2023-05-12',
-    time: '22:00 - 04:00',
-    venue: 'The Warehouse',
-    location: 'Bristol, UK',
-    description: 'MC OJ brings the energy to Bristol\'s premier underground venue.',
-    status: 'past',
-  },
-];
 
 export default function EventsDiary() {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Fetch events when component mounts
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('/api/events');
+        if (!response.ok) {
+          throw new Error('Failed to fetch events');
+        }
+        const data = await response.json();
+        setEvents(data.events || []);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Helper to determine if an event is in the past
+  const isPastEvent = (dateString: string) => {
+    const eventDate = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to beginning of today
+    return eventDate < today;
+  };
   
   // Filter events based on selected filter
-  const filteredEvents = eventsData.filter(event => {
+  const filteredEvents = events.filter(event => {
     if (filter === 'all') return true;
-    if (filter === 'upcoming') return event.status === 'upcoming';
-    if (filter === 'past') return event.status === 'past';
+    if (filter === 'upcoming') return !isPastEvent(event.date);
+    if (filter === 'past') return isPastEvent(event.date);
     return true;
+  });
+
+  // Sort events by date (upcoming first, then past)
+  const sortedEvents = [...filteredEvents].sort((a, b) => {
+    // First sort by past/upcoming status
+    const aIsPast = isPastEvent(a.date);
+    const bIsPast = isPastEvent(b.date);
+    
+    if (aIsPast && !bIsPast) return 1; // a is past, b is upcoming, so b comes first
+    if (!aIsPast && bIsPast) return -1; // a is upcoming, b is past, so a comes first
+    
+    // Then sort by date
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
   });
 
   return (
@@ -134,71 +122,89 @@ export default function EventsDiary() {
         
         {/* Events List */}
         <div className="space-y-6 max-w-4xl mx-auto">
-          {filteredEvents.length > 0 ? (
-            filteredEvents.map((event) => (
-              <div 
-                key={event.id} 
-                className={`bg-brand-black border-l-4 ${
-                  event.status === 'upcoming' ? 'border-brand-gold' : 'border-brand-grey'
-                } rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-300`}
-              >
-                <div className="flex flex-col md:flex-row md:items-center gap-6">
-                  {/* Date Column */}
-                  <div className="flex-shrink-0 flex flex-col items-center justify-center bg-brand-navy rounded-lg p-4 w-24 h-24 border border-brand-grey">
-                    <span className="text-brand-gold text-2xl font-bold">
-                      {new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric' })}
-                    </span>
-                    <span className="text-white text-sm uppercase">
-                      {new Date(event.date).toLocaleDateString('en-GB', { month: 'short' })}
-                    </span>
-                    <span className="text-white text-sm">
-                      {new Date(event.date).getFullYear()}
-                    </span>
-                  </div>
-                  
-                  {/* Event Details */}
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bank-gothic text-brand-gold mb-2">{event.title}</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center text-white">
-                        <ClockIcon className="h-4 w-4 mr-2 text-brand-gold" />
-                        <span>{event.time}</span>
+          {loading ? (
+            <div className="text-center py-10">
+              <p className="text-brand-grey text-lg">Loading events...</p>
+            </div>
+          ) : sortedEvents.length > 0 ? (
+            sortedEvents.map((event) => {
+              const isEventPast = isPastEvent(event.date);
+              
+              return (
+                <div 
+                  key={event.id} 
+                  className={`bg-brand-black border-l-4 ${
+                    !isEventPast ? 'border-brand-gold' : 'border-brand-grey'
+                  } rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-300`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center gap-6">
+                    {/* Date Column */}
+                    <div className="flex-shrink-0 flex flex-col items-center justify-center bg-brand-navy rounded-lg p-4 w-24 h-24 border border-brand-grey">
+                      <span className="text-brand-gold text-2xl font-bold">
+                        {new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric' })}
+                      </span>
+                      <span className="text-white text-sm uppercase">
+                        {new Date(event.date).toLocaleDateString('en-GB', { month: 'short' })}
+                      </span>
+                      <span className="text-white text-sm">
+                        {new Date(event.date).getFullYear()}
+                      </span>
+                    </div>
+                    
+                    {/* Event Details */}
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bank-gothic text-brand-gold mb-2">{event.eventName}</h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center text-white">
+                          <ClockIcon className="h-4 w-4 mr-2 text-brand-gold" />
+                          <span>{event.timeStart} - {event.timeEnd}</span>
+                        </div>
+                        <div className="flex items-center text-white">
+                          <MapPinIcon className="h-4 w-4 mr-2 text-brand-gold" />
+                          <span>{event.venue}, {event.address}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center text-white">
-                        <MapPinIcon className="h-4 w-4 mr-2 text-brand-gold" />
-                        <span>{event.venue}, {event.location}</span>
-                      </div>
-                      <p className="text-brand-grey text-sm mt-2">
-                        {event.description}
-                      </p>
+                    </div>
+                    
+                    {/* Action Button */}
+                    <div className="flex-shrink-0 flex flex-col gap-2">
+                      {!isEventPast && event.ticketLink ? (
+                        <Link
+                          href={event.ticketLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-primary flex items-center"
+                        >
+                          <TicketIcon className="h-4 w-4 mr-2" />
+                          Get Tickets
+                        </Link>
+                      ) : isEventPast ? (
+                        <span className="text-brand-grey text-sm px-4 py-2 border border-brand-grey rounded-lg">
+                          Past Event
+                        </span>
+                      ) : (
+                        <span className="text-brand-grey text-sm px-4 py-2 border border-brand-grey rounded-lg">
+                          Coming Soon
+                        </span>
+                      )}
+                      
+                      {/* Get Directions Link */}
+                      {event.postcode && (
+                        <Link
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.venue}, ${event.address}, ${event.postcode}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-secondary flex items-center text-sm"
+                        >
+                          <MapPinIcon className="h-4 w-4 mr-2" />
+                          Get Directions
+                        </Link>
+                      )}
                     </div>
                   </div>
-                  
-                  {/* Action Button */}
-                  <div className="flex-shrink-0">
-                    {event.status === 'upcoming' && event.ticketLink ? (
-                      <Link
-                        href={event.ticketLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-primary flex items-center"
-                      >
-                        <TicketIcon className="h-4 w-4 mr-2" />
-                        Get Tickets
-                      </Link>
-                    ) : event.status === 'past' ? (
-                      <span className="text-brand-grey text-sm px-4 py-2 border border-brand-grey rounded-lg">
-                        Past Event
-                      </span>
-                    ) : (
-                      <span className="text-brand-grey text-sm px-4 py-2 border border-brand-grey rounded-lg">
-                        Coming Soon
-                      </span>
-                    )}
-                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="text-center py-10">
               <p className="text-brand-grey text-lg">No events found matching your filter.</p>
