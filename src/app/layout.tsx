@@ -1,5 +1,5 @@
-import type { Metadata } from 'next'
-import { Montserrat } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
+import { Montserrat, Teko } from 'next/font/google'
 import '../styles/globals.css'
 
 const montserrat = Montserrat({ 
@@ -7,7 +7,14 @@ const montserrat = Montserrat({
   variable: '--font-montserrat',
 })
 
+const teko = Teko({
+  weight: ['400', '500', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-teko',
+})
+
 export const metadata: Metadata = {
+  metadataBase: new URL('https://mcoj.uk'),
   title: 'MC OJ - UK Garage MC',
   description: 'Official website of MC OJ - Bringing the golden touch to UK Garage',
   icons: {
@@ -26,8 +33,6 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/favicon/site.webmanifest',
-  themeColor: '#000000',
-  viewport: 'width=device-width, initial-scale=1.0',
   openGraph: {
     type: 'website',
     locale: 'en_GB',
@@ -51,13 +56,19 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  themeColor: '#000000',
+  width: 'device-width',
+  initialScale: 1.0,
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${montserrat.variable}`}>
+    <html lang="en" className={`${montserrat.variable} ${teko.variable}`}>
       <body className="min-h-screen bg-brand-black">
         {children}
       </body>

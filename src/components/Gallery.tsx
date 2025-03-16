@@ -54,8 +54,8 @@ export default function Gallery() {
   return (
     <section id="gallery" className="py-20 bg-brand-black">
       <div className="container mx-auto px-4">
-        <h2 className="section-title text-center">Gallery</h2>
-        <p className="section-subtitle text-center max-w-3xl mx-auto">
+        <h2 className="section-title text-center gold-shimmer">Gallery</h2>
+        <p className="text-xl md:text-2xl font-montserrat text-white mb-12 max-w-3xl mx-auto text-center">
           Capturing the energy and charisma of MC OJ's performances
         </p>
 

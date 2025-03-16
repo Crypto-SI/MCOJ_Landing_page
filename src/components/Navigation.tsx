@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
+import AudioPlayer from './AudioPlayer';
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -24,6 +25,7 @@ export default function Navigation() {
     { name: 'About', href: '#about' },
     { name: 'Events', href: '#events' },
     { name: 'Gallery', href: '#gallery' },
+    { name: 'Videos', href: '#videos' },
     { name: 'Book Now', href: '#booking' },
   ];
 
@@ -90,10 +92,16 @@ export default function Navigation() {
                 {link.name}
               </Link>
             ))}
+            {/* Audio Player */}
+            <div className="flex items-center ml-4">
+              <AudioPlayer />
+            </div>
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center space-x-4">
+            {/* Audio Player for mobile */}
+            <AudioPlayer />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-white hover:text-brand-gold transition-colors p-2"

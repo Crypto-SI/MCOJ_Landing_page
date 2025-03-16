@@ -8,6 +8,26 @@
   body {
     @apply bg-brand-black text-white;
   }
+  
+  /* Ensure Bank Gothic (Teko) is always uppercase as per brand guidelines */
+  .font-bank-gothic {
+    @apply uppercase tracking-wide;
+  }
+  
+  /* Apply shimmer to all gold headings by default */
+  h1.text-brand-gold, 
+  h2.text-brand-gold, 
+  h3.text-brand-gold,
+  .text-brand-gold.font-bank-gothic {
+    transition: all 0.3s ease;
+  }
+  
+  h1.text-brand-gold:hover, 
+  h2.text-brand-gold:hover, 
+  h3.text-brand-gold:hover,
+  .text-brand-gold.font-bank-gothic:hover {
+    @apply gold-shimmer;
+  }
 }
 
 @layer components {
@@ -21,11 +41,128 @@
 
   .section-title {
     @apply text-4xl md:text-5xl font-bank-gothic text-brand-gold mb-8;
+    transition: all 0.3s ease;
+  }
+  
+  .section-title:hover {
+    @apply gold-shimmer;
   }
 
   .section-subtitle {
     @apply text-xl md:text-2xl font-montserrat text-brand-grey mb-12;
   }
+}
+
+/* Gold Shimmer Effect - Using direct CSS for maximum compatibility */
+.gold-shimmer,
+.hover\:gold-shimmer:hover {
+  position: relative;
+  cursor: pointer;
+  background: linear-gradient(90deg, #D4AF37 0%, #FFF2CC 50%, #D4AF37 100%);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent !important;
+  text-fill-color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: goldShimmer 1.5s linear infinite;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+  transform: scale(1.02);
+  overflow: hidden;
+}
+
+/* Sparkle effect using pseudo-elements */
+.gold-shimmer::before,
+.hover\:gold-shimmer:hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: sparkleSwipe 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+/* Multiple floating sparkles using generated content */
+.gold-shimmer::after,
+.hover\:gold-shimmer:hover::after {
+  content: '✨';
+  position: absolute;
+  top: -5px;
+  right: 5px;
+  font-size: 1rem;
+  color: white;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.9);
+  animation: sparkleFloat 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Additional sparkles using custom generated elements */
+.gold-shimmer span.sparkle,
+.hover\:gold-shimmer:hover span.sparkle {
+  display: none;
+}
+
+/* Add sparkling stars effect with dot particles */
+.gold-shimmer::before,
+.hover\:gold-shimmer:hover::before {
+  box-shadow: 
+    0 0 10px 2px rgba(255, 215, 0, 0.3),
+    0 0 20px 4px rgba(255, 215, 0, 0.2);
+}
+
+/* Add keyframe animations for the sparkles */
+@keyframes sparkleFloat {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(-15px, -10px) scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(15px, -15px) scale(1.2);
+    opacity: 1;
+  }
+  75% {
+    transform: translate(5px, -5px) scale(0.9);
+    opacity: 0.9;
+  }
+}
+
+/* Add another sparkle element for more emphasis */
+.gold-shimmer .sparkle-container,
+.hover\:gold-shimmer:hover .sparkle-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* JavaScript will dynamically add these, but we can define them in CSS anyway */
+.sparkle-element {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: rgba(255, 215, 0, 0.9);
+  box-shadow: 0 0 10px 2px rgba(255, 215, 0, 0.5);
+  pointer-events: none;
+  z-index: 5;
 }
 
 /* Custom Animations */
@@ -41,6 +178,40 @@
   }
 }
 
+@keyframes goldShimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes sparkleSwipe {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+/* Toast Notification Animations */
+@keyframes shrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 300ms ease-out forwards;
+}
+
+.animate-fade-out {
+  animation: fade-out 300ms ease-out forwards;
 } 

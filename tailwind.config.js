@@ -14,8 +14,8 @@ module.exports = {
         'brand-navy': '#020A18',
       },
       fontFamily: {
-        'bank-gothic': ['Bank Gothic', 'sans-serif'],
-        'montserrat': ['Montserrat', 'sans-serif'],
+        'bank-gothic': ['var(--font-teko)', 'sans-serif'],
+        'montserrat': ['var(--font-montserrat)', 'sans-serif'],
         'eurostile': ['Eurostile Extended', 'sans-serif'],
       },
       animation: {

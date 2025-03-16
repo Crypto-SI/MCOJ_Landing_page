@@ -116,6 +116,20 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
+        {/* Videos Management Card */}
+        <div className="bg-gray-900 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-700">
+          <h2 className="text-xl font-bold mb-4 text-yellow-400">Videos Management</h2>
+          <p className="text-yellow-300 mb-4">
+            Add, edit, or remove videos in the video gallery section of your website.
+          </p>
+          <Link 
+            href="/admin/videos"
+            className="inline-block bg-yellow-500 text-black px-4 py-2 rounded-md hover:bg-yellow-600 transition-colors font-bold"
+          >
+            Manage Videos
+          </Link>
+        </div>
+
         {/* Stats Card - Placeholder for future functionality */}
         <div className="bg-gray-900 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-700">
           <h2 className="text-xl font-bold mb-4 text-yellow-400">Website Statistics</h2>

@@ -1,19 +1,32 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Hero() {
   return (
     <section id="hero" className="relative h-screen flex items-center justify-center overflow-hidden">
+      {/* Background image */}
+      <div className="absolute inset-0 w-full h-full z-0">
+        <Image 
+          src="/images/OJ announcing.jpg"
+          alt="MC OJ performing"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+      </div>
+      
       {/* Background with gradient overlay */}
-      <div className="absolute inset-0 bg-brand-navy opacity-90 z-10" />
+      <div className="absolute inset-0 bg-gradient-to-b from-brand-black/80 via-brand-navy/70 to-brand-black/80 z-10" />
       
       {/* Content */}
       <div className="relative z-20 container mx-auto px-4 text-center">
-        <h1 className="text-6xl md:text-8xl font-bank-gothic text-brand-gold mb-6">
+        <h1 className="text-6xl md:text-8xl font-bank-gothic text-brand-gold mb-6 drop-shadow-lg hover:gold-shimmer">
           MC OJ
         </h1>
-        <p className="text-xl md:text-2xl font-montserrat text-white mb-8">
+        <p className="text-xl md:text-2xl font-montserrat text-white mb-8 drop-shadow-md">
           Bringing the golden touch to UK Garage
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">

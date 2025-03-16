@@ -49,7 +49,7 @@ export default function Footer() {
           <div>
             <h4 className="text-brand-gold font-bank-gothic text-lg mb-4">Quick Links</h4>
             <nav className="space-y-2">
-              {['About', 'Events', 'Gallery', 'Book Now'].map((item) => (
+              {['About', 'Events', 'Gallery', 'Videos', 'Book Now'].map((item) => (
                 <Link
                   key={item}
                   href={`#${item.toLowerCase().replace(' ', '-')}`}

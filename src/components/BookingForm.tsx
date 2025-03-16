@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import Image from 'next/image';
 import { CalendarIcon, ClockIcon, MapPinIcon, UserIcon, EnvelopeIcon, PhoneIcon, CurrencyPoundIcon, SparklesIcon, UserGroupIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
 
 type FormData = {
@@ -118,32 +119,47 @@ export default function BookingForm() {
   };
 
   return (
-    <section id="booking" className="py-20 bg-brand-black">
-      <div className="container mx-auto px-4">
+    <section id="booking" className="relative py-20">
+      {/* Background image */}
+      <div className="absolute inset-0 w-full h-full z-0">
+        <Image 
+          src="/images/Crowd.jpg"
+          alt="Crowd at an MC OJ event"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+      </div>
+      
+      {/* Background overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-brand-black/95 via-brand-navy/85 to-brand-black/95 z-10" />
+      
+      <div className="container relative z-20 mx-auto px-4">
         <h2 className="section-title text-center">Book MC OJ</h2>
         
         {!showForm ? (
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
-              <p className="section-subtitle max-w-3xl mx-auto mb-8">
+              <p className="text-xl md:text-2xl font-montserrat text-white mb-8 max-w-3xl mx-auto">
                 Experience the electrifying presence of MC OJ at your next event. Known for elevating the atmosphere and commanding the crowd with unmatched energy.
               </p>
               
               {/* Features Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-                <div className="bg-brand-navy/30 p-6 rounded-lg border border-brand-gold/20">
+                <div className="bg-brand-black/70 backdrop-blur-sm p-6 rounded-lg border border-brand-gold/20">
                   <SparklesIcon className="h-8 w-8 text-brand-gold mx-auto mb-4" />
                   <h3 className="text-brand-gold font-bank-gothic text-xl mb-2">Crowd Control</h3>
                   <p className="text-white/80">Master of ceremonies who knows how to read and elevate any crowd</p>
                 </div>
                 
-                <div className="bg-brand-navy/30 p-6 rounded-lg border border-brand-gold/20">
+                <div className="bg-brand-black/70 backdrop-blur-sm p-6 rounded-lg border border-brand-gold/20">
                   <UserGroupIcon className="h-8 w-8 text-brand-gold mx-auto mb-4" />
                   <h3 className="text-brand-gold font-bank-gothic text-xl mb-2">Vibe Creator</h3>
                   <p className="text-white/80">Creates an electric atmosphere that keeps the energy high all night</p>
                 </div>
                 
-                <div className="bg-brand-navy/30 p-6 rounded-lg border border-brand-gold/20">
+                <div className="bg-brand-black/70 backdrop-blur-sm p-6 rounded-lg border border-brand-gold/20">
                   <MusicalNoteIcon className="h-8 w-8 text-brand-gold mx-auto mb-4" />
                   <h3 className="text-brand-gold font-bank-gothic text-xl mb-2">UK Garage Expert</h3>
                   <p className="text-white/80">Deep knowledge of UK Garage scene with years of experience</p>
@@ -151,7 +167,7 @@ export default function BookingForm() {
               </div>
 
               {/* Pricing Box */}
-              <div className="bg-brand-navy/50 p-8 rounded-lg border border-brand-gold/30 max-w-2xl mx-auto mb-8">
+              <div className="bg-brand-black/80 backdrop-blur-sm p-8 rounded-lg border border-brand-gold/30 max-w-2xl mx-auto mb-8">
                 <CurrencyPoundIcon className="h-12 w-12 text-brand-gold mx-auto mb-4" />
                 <h3 className="text-2xl font-bank-gothic text-brand-gold mb-4">Flat Rate Booking</h3>
                 <p className="text-3xl font-bold text-white mb-4">£100<span className="text-lg font-normal text-white/80"> per appearance</span></p>
@@ -173,7 +189,7 @@ export default function BookingForm() {
         ) : (
           <>
             {submissionStatus === 'success' ? (
-              <div className="max-w-2xl mx-auto mt-10 bg-brand-gold/20 border border-brand-gold rounded-lg p-8 text-center">
+              <div className="max-w-2xl mx-auto mt-10 bg-brand-black/80 backdrop-blur-sm border border-brand-gold rounded-lg p-8 text-center">
                 <h3 className="text-2xl font-bank-gothic text-brand-gold mb-4">Booking Request Submitted!</h3>
                 <p className="text-white mb-6">
                   Thank you for your interest in booking MC OJ. We&apos;ll review your request and get back to you within 24-48 hours.
@@ -204,7 +220,7 @@ export default function BookingForm() {
                 >
                   Back to Pricing
                 </button>
-                <form onSubmit={handleSubmit} className="bg-brand-grey/10 rounded-lg p-8">
+                <form onSubmit={handleSubmit} className="bg-brand-black/80 backdrop-blur-sm rounded-lg p-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Personal Information */}
                     <div className="md:col-span-2">
@@ -225,7 +241,7 @@ export default function BookingForm() {
                           name="name"
                           value={formData.name}
                           onChange={handleChange}
-                          className={`block w-full pl-10 rounded-md bg-brand-black border ${
+                          className={`block w-full pl-10 rounded-md bg-brand-black/50 border ${
                             errors.name ? 'border-red-500' : 'border-brand-grey'
                           } focus:outline-none focus:ring-2 focus:ring-brand-gold text-white py-2 px-4`}
                           placeholder="Your name"
@@ -248,7 +264,7 @@ export default function BookingForm() {
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
-                          className={`block w-full pl-10 rounded-md bg-brand-black border ${
+                          className={`block w-full pl-10 rounded-md bg-brand-black/50 border ${
                             errors.email ? 'border-red-500' : 'border-brand-grey'
                           } focus:outline-none focus:ring-2 focus:ring-brand-gold text-white py-2 px-4`}
                           placeholder="Your email"
@@ -271,7 +287,7 @@ export default function BookingForm() {
                           name="phone"
                           value={formData.phone}
                           onChange={handleChange}
-                          className={`block w-full pl-10 rounded-md bg-brand-black border ${
+                          className={`block w-full pl-10 rounded-md bg-brand-black/50 border ${
                             errors.phone ? 'border-red-500' : 'border-brand-grey'
                           } focus:outline-none focus:ring-2 focus:ring-brand-gold text-white py-2 px-4`}
                           placeholder="Your phone number"
@@ -295,7 +311,7 @@ export default function BookingForm() {
                         name="eventName"
                         value={formData.eventName}
                         onChange={handleChange}
-                        className={`block w-full rounded-md bg-brand-black border ${
+                        className={`block w-full rounded-md bg-brand-black/50 border ${
                           errors.eventName ? 'border-red-500' : 'border-brand-grey'
                         } focus:outline-none focus:ring-2 focus:ring-brand-gold text-white py-2 px-4`}
                         placeholder="Name of your event"
@@ -317,7 +333,7 @@ export default function BookingForm() {
                           name="eventDate"
                           value={formData.eventDate}
                           onChange={handleChange}
-                          className={`block w-full pl-10 rounded-md bg-brand-black border ${
+                          className={`block w-full pl-10 rounded-md bg-brand-black/50 border ${
                             errors.eventDate ? 'border-red-500' : 'border-brand-grey'
                           } focus:outline-none focus:ring-2 focus:ring-brand-gold text-white py-2 px-4`}
                         />
@@ -339,7 +355,7 @@ export default function BookingForm() {
                           name="eventTime"
                           value={formData.eventTime}
                           onChange={handleChange}
-                          className={`block w-full pl-10 rounded-md bg-brand-black border ${
+                          className={`block w-full pl-10 rounded-md bg-brand-black/50 border ${
                             errors.eventTime ? 'border-red-500' : 'border-brand-grey'
                           } focus:outline-none focus:ring-2 focus:ring-brand-gold text-white py-2 px-4`}
                         />
@@ -357,7 +373,7 @@ export default function BookingForm() {
                         name="eventVenue"
                         value={formData.eventVenue}
                         onChange={handleChange}
-                        className={`block w-full rounded-md bg-brand-black border ${
+                        className={`block w-full rounded-md bg-brand-black/50 border ${
                           errors.eventVenue ? 'border-red-500' : 'border-brand-grey'
                         } focus:outline-none focus:ring-2 focus:ring-brand-gold text-white py-2 px-4`}
                         placeholder="Venue name"
@@ -379,7 +395,7 @@ export default function BookingForm() {
                           name="eventLocation"
                           value={formData.eventLocation}
                           onChange={handleChange}
-                          className={`block w-full pl-10 rounded-md bg-brand-black border ${
+                          className={`block w-full pl-10 rounded-md bg-brand-black/50 border ${
                             errors.eventLocation ? 'border-red-500' : 'border-brand-grey'
                           } focus:outline-none focus:ring-2 focus:ring-brand-gold text-white py-2 px-4`}
                           placeholder="City, Country"
@@ -398,7 +414,7 @@ export default function BookingForm() {
                         value={formData.additionalInfo}
                         onChange={handleChange}
                         rows={4}
-                        className="block w-full rounded-md bg-brand-black border border-brand-grey focus:outline-none focus:ring-2 focus:ring-brand-gold text-white py-2 px-4"
+                        className="block w-full rounded-md bg-brand-black/50 border border-brand-grey focus:outline-none focus:ring-2 focus:ring-brand-gold text-white py-2 px-4"
                         placeholder="Any additional details about your event..."
                       />
                     </div>

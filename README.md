@@ -18,6 +18,7 @@ We're talking about sections that hit harder than a garage bassline:
 - 🏆 **Hero Section** - First impressions that'll blow your mind
 - 👑 **About MC OJ** - The story of the UK's most energetic MC
 - 📸 **Gallery** - Catch the vibes from past events with our slick lightbox
+- 🎬 **Video Gallery** - Watch MC OJ in action with auto-playing videos
 - 📅 **Events Diary** - Where's the next party at? All listed here!
 - 📝 **Booking Form** - Want MC OJ at your event? Say no more!
 - 🔗 **Social Links** - Stay connected with the movement
@@ -49,6 +50,7 @@ Listen up producers and developers, here's what we're working with:
 - **Styling**: Tailwind CSS
 - **Icons**: Heroicons
 - **Image Processing**: Sharp for dynamic image resizing
+- **Video Processing**: HTML5 Canvas API for client-side video thumbnails
 - **Animations**: Smooth scrolling and transitions
 - **Components**: 100% custom-built, no templates!
 
@@ -87,12 +89,20 @@ src/
 - Grid layout with hover effects
 - Optimized image loading
 
+### Video Gallery
+- Smart video playback management - only one video plays at a time
+- Auto-play videos when they become visible
+- Auto-stop videos when navigating away or switching tabs
+- Elegant lightbox presentation with thumbnail previews
+- Client-side adaptive controls for mobile and desktop
+
 ### Admin Area
 - Secure login system
 - Dashboard with site management tools
 - Content management capabilities
 - Events management with CRUD functionality
 - Gallery management with archive system
+- Video management with browser-based thumbnail generation
 
 ### Gallery Management
 - Upload new images with automatic processing
@@ -100,6 +110,34 @@ src/
 - Archive and restore images as needed
 - Enforce quality standards with automatic resizing
 - Finalize changes to update the public gallery
+
+### Video Management System
+Our comprehensive video management system makes it easy to showcase MC OJ's performances:
+
+#### Key Features
+- **Browser-Based Thumbnail Generation**: No server dependencies needed
+  - Automatically extracts thumbnails from uploaded videos
+  - Fallback thumbnails when extraction fails
+  - Retry button for thumbnail generation
+  
+- **Smart Video Player**:
+  - Intelligent playback management across the site
+  - Only one video plays at a time
+  - Videos automatically pause when you navigate away
+  - Videos automatically pause when switching browser tabs
+  
+- **Complete Video CRUD**:
+  - Upload videos with descriptions and titles
+  - Preview all videos before publishing
+  - Delete videos when no longer needed
+  - All changes reflect immediately on the public site
+
+#### How to Use
+1. Navigate to `/admin/videos` after logging in
+2. Upload new videos using the form
+3. Videos are processed client-side with automatic thumbnails
+4. Preview videos before confirming upload
+5. Manage existing videos with simple controls
 
 ### Events Diary
 - Upcoming and past events
@@ -159,6 +197,16 @@ Our brand new gallery management system makes it easy to keep MC OJ's image gall
 2. Enter admin credentials
 3. Access the gallery management through the dashboard
 4. Make changes and click "FINALISE GALLERY" to publish
+
+## 🎬 Visual Effects and Animation
+
+Our site features premium visual effects to create a memorable user experience:
+
+### Key Effects
+- **Gold Shimmer Text**: Elegant animated shimmer effect on headings
+- **Sparkle Animation**: Subtle sparkle effects on interactive elements
+- **Smooth Video Transitions**: Clean transitions between video states
+- **Responsive Animations**: All effects optimized for both desktop and mobile
 
 ## 🤝 Big Up The Community!
 

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "32ad37c4-6775-47f9-bfdc-592786d93f10",
+    "src": "/videos/32ad37c4-6775-47f9-bfdc-592786d93f10.mp4",
+    "thumbnailSrc": "/videos/thumbnails/32ad37c4-6775-47f9-bfdc-592786d93f10-thumb.jpg",
+    "title": "OC snippet",
+    "description": "OC fest 2024 snippet",
+    "autoThumbnail": true
+  },
+  {
+    "id": "6f61e54e-0bc7-494c-947c-4f0017f873f9",
+    "src": "/videos/6f61e54e-0bc7-494c-947c-4f0017f873f9.mp4",
+    "thumbnailSrc": "/videos/thumbnails/6f61e54e-0bc7-494c-947c-4f0017f873f9-thumb.jpg",
+    "title": "OC Fest 2024",
+    "description": "MC OJ performing at OC Fest",
+    "autoThumbnail": true
+  },
+  {
+    "id": "b9697035-5f10-4129-a1ed-2df83e91d309",
+    "src": "/videos/b9697035-5f10-4129-a1ed-2df83e91d309.mp4",
+    "thumbnailSrc": "/videos/thumbnails/b9697035-5f10-4129-a1ed-2df83e91d309-thumb.jpg",
+    "title": "OC Fest 2024",
+    "description": "MC OJ and others performing at OC fest 2024, Bedford, UK",
+    "autoThumbnail": true
+  }
+]

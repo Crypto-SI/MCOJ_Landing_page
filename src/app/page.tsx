@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import Gallery from '@/components/Gallery'
+import VideoGallery from '@/components/VideoGallery'
 import EventsDiary from '@/components/EventsDiary'
 import BookingForm from '@/components/BookingForm'
 import Navigation from '@/components/Navigation'
@@ -16,6 +17,7 @@ export default function Home() {
       <About />
       <EventsDiary />
       <Gallery />
+      <VideoGallery />
       <BookingForm />
       <Footer />
     </main>

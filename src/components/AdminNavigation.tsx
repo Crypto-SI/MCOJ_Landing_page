@@ -14,6 +14,8 @@ export default function AdminNavigation() {
   const navLinks = [
     { href: '/admin/dashboard', label: 'Dashboard' },
     { href: '/admin/gallery', label: 'Gallery Management' },
+    { href: '/admin/events', label: 'Events Management' },
+    { href: '/admin/videos', label: 'Videos Management' },
   ]
 
   return (

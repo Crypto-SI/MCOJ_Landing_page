@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { CalendarIcon, MapPinIcon, TicketIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 // Define types
@@ -77,16 +78,31 @@ export default function EventsDiary() {
   });
 
   return (
-    <section id="events" className="py-20 bg-brand-navy">
-      <div className="container mx-auto px-4">
+    <section id="events" className="relative py-20">
+      {/* Background image */}
+      <div className="absolute inset-0 w-full h-full z-0">
+        <Image 
+          src="/images/Face the fans.jpg"
+          alt="MC OJ facing the fans"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+      </div>
+      
+      {/* Background overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-brand-black/90 via-brand-navy/85 to-brand-black/90 z-10" />
+      
+      <div className="container relative z-20 mx-auto px-4">
         <h2 className="section-title text-center">Event Diary</h2>
-        <p className="section-subtitle text-center max-w-3xl mx-auto">
+        <p className="text-xl md:text-2xl font-montserrat text-white mb-12 max-w-3xl mx-auto text-center">
           Catch MC OJ live at these upcoming events or book him for your own show
         </p>
         
         {/* Filter Buttons */}
         <div className="flex justify-center mb-10">
-          <div className="inline-flex rounded-md shadow-sm bg-brand-grey/20 p-1">
+          <div className="inline-flex rounded-md shadow-sm bg-brand-black/40 p-1">
             <button
               onClick={() => setFilter('upcoming')}
               className={`px-4 py-2 text-sm rounded-md ${
@@ -133,13 +149,13 @@ export default function EventsDiary() {
               return (
                 <div 
                   key={event.id} 
-                  className={`bg-brand-black border-l-4 ${
+                  className={`bg-brand-black/80 backdrop-blur-sm border-l-4 ${
                     !isEventPast ? 'border-brand-gold' : 'border-brand-grey'
                   } rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-300`}
                 >
                   <div className="flex flex-col md:flex-row md:items-center gap-6">
                     {/* Date Column */}
-                    <div className="flex-shrink-0 flex flex-col items-center justify-center bg-brand-navy rounded-lg p-4 w-24 h-24 border border-brand-grey">
+                    <div className="flex-shrink-0 flex flex-col items-center justify-center bg-brand-navy/70 rounded-lg p-4 w-24 h-24 border border-brand-grey">
                       <span className="text-brand-gold text-2xl font-bold">
                         {new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric' })}
                       </span>
@@ -206,7 +222,7 @@ export default function EventsDiary() {
               );
             })
           ) : (
-            <div className="text-center py-10">
+            <div className="text-center py-10 bg-brand-black/50 backdrop-blur-sm rounded-lg">
               <p className="text-brand-grey text-lg">No events found matching your filter.</p>
             </div>
           )}
