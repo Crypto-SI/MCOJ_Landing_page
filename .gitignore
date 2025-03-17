@@ -24,6 +24,11 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env*.backup
+.env*.example
+.env.development
+.env.test
+.env.production
 
 # vercel
 .vercel
@@ -34,4 +39,17 @@ next-env.d.ts
 
 # IDE
 .vscode/
-.idea/ 
+.idea/
+
+# security and keys
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+*.keystore
+
+# temp files
+tmp/
+*.tmp 

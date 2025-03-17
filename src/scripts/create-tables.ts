@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Hardcode the credentials for this script only
-const supabaseUrl = 'https://your-project-reference.supabase.co';
-const supabaseServiceRoleKey = 'your-service-role-key-from-supabase-dashboard';
+// Use environment variables instead of hardcoded credentials
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Check if environment variables are set
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  console.error('Error: Required environment variables are not set.');
+  console.error('Please ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in your .env.local file.');
+  process.exit(1);
+}
 
 // Create a Supabase client with the service role key
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
