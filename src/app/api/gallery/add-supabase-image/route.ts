@@ -4,6 +4,12 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not initialized');
+      return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
+    }
+
     const body = await request.json();
     const { filename, src, position } = body;
     
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest) {
         placeholderPosition: newImage.position
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error adding Supabase image to gallery:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
