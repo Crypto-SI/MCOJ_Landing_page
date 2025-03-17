@@ -72,6 +72,12 @@ async function optimizeImageWithTinyPNG(buffer: Buffer): Promise<Buffer> {
 // POST /api/optimize-image - Optimize and upload an image
 export async function POST(request: NextRequest) {
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not initialized');
+      return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
+    }
+
     // Parse the FormData
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
