@@ -4,6 +4,12 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not initialized');
+      return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
+    }
+
     // Get the file details and bucket information from the request
     const { filename, contentType, bucket, path = '' } = await request.json();
     
