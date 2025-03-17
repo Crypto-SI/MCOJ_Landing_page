@@ -16,6 +16,12 @@ export const REQUIRED_BUCKETS = [
  */
 async function bucketExists(bucketName: string): Promise<boolean> {
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not initialized');
+      return false;
+    }
+    
     const { data, error } = await supabaseAdmin
       .storage
       .getBucket(bucketName);
@@ -33,6 +39,12 @@ async function bucketExists(bucketName: string): Promise<boolean> {
  */
 async function createBucket(bucketName: string, isPublic: boolean = false): Promise<boolean> {
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not initialized');
+      return false;
+    }
+    
     const { error } = await supabaseAdmin
       .storage
       .createBucket(bucketName, {
@@ -62,6 +74,12 @@ async function setupBucketPolicy(bucketName: string, isPublic: boolean = false):
   if (!isPublic) return true; // Skip if not public
   
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not initialized');
+      return false;
+    }
+    
     // Create a policy that allows public access to read files
     const { error } = await supabaseAdmin
       .storage
@@ -89,6 +107,17 @@ export async function ensureSupabaseBucketsExist(): Promise<{
   existing: string[];
   failed: string[];
 }> {
+  // Check if supabaseAdmin is initialized
+  if (!supabaseAdmin) {
+    console.error('Supabase admin client not initialized');
+    return {
+      success: false,
+      created: [],
+      existing: [],
+      failed: REQUIRED_BUCKETS,
+    };
+  }
+  
   const result = {
     success: true,
     created: [] as string[],
@@ -129,6 +158,12 @@ export async function ensureSupabaseBucketsExist(): Promise<{
 
 // Export a function to check individual bucket existence
 export async function checkBucketExists(bucketName: string): Promise<boolean> {
+  // Check if supabaseAdmin is initialized
+  if (!supabaseAdmin) {
+    console.error('Supabase admin client not initialized');
+    return false;
+  }
+  
   return await bucketExists(bucketName);
 }
 
