@@ -213,53 +213,38 @@ export default function GalleryManagement() {
       setIsUploading(true);
       setUploadError(null);
       
-      // Upload the optimized file
-      const { data, error } = await supabase.storage
-        .from('gallery')
-        .upload(`gallery_image_${selectedPosition}.jpg`, optimizedFile, {
-          contentType: 'image/jpeg',
-          upsert: true
-        });
+      // Create a FormData object for the file upload API
+      const formData = new FormData();
+      formData.append('file', optimizedFile);
+      formData.append('position', selectedPosition.toString());
       
-      if (error) throw error;
-      
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('gallery')
-        .getPublicUrl(`gallery_image_${selectedPosition}.jpg`);
-      
-      // Add to gallery images state
-      setGalleryImages(prev => {
-        const newImages = [...prev];
-        const existingIndex = newImages.findIndex(img => img.placeholderPosition === selectedPosition);
-        
-        if (existingIndex >= 0) {
-          newImages[existingIndex] = {
-            ...newImages[existingIndex],
-            src: publicUrl,
-            placeholderPosition: selectedPosition
-          };
-        } else {
-          newImages.push({
-            id: `gallery_image_${selectedPosition}`,
-            src: publicUrl,
-            alt: `Gallery image ${selectedPosition}`,
-            placeholderPosition: selectedPosition
-          });
-        }
-        
-        return newImages;
+      // Use our existing API endpoint for uploads
+      console.log('Sending upload request for optimized image...');
+      const response = await fetch('/api/gallery/upload', {
+        method: 'POST',
+        body: formData,
       });
       
-      setSuccessMessage('Image uploaded successfully');
-      setShowOptimizer(false);
-      setOversizedFile(null);
+      console.log('Upload response status:', response.status);
+      const result = await response.json();
+      console.log('Upload response data:', result);
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to upload optimized image');
+      }
+      
+      // Show success message
+      setSuccessMessage(`Optimized image uploaded to position ${result.image.placeholderPosition} successfully!`);
+      
+      // Refresh gallery images
+      loadGalleryImages();
     } catch (error) {
       console.error('Error uploading optimized image:', error);
       setUploadError(error instanceof Error ? error.message : 'Failed to upload optimized image');
     } finally {
       setIsUploading(false);
       setSelectedPosition(0);
+      setOversizedFile(null);
     }
   };
 
@@ -463,6 +448,15 @@ export default function GalleryManagement() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <h1 className="text-3xl font-bold mb-8 text-center">Gallery Management</h1>
       
+      {/* Hidden file input for image uploads */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        accept="image/jpeg,image/jpg,image/png"
+        className="hidden"
+      />
+      
       {/* Messages */}
       {successMessage && (
         <div className="mb-4 p-3 bg-green-900/50 border border-green-500 rounded-md">
@@ -608,15 +602,6 @@ export default function GalleryManagement() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold text-yellow-400">Archived Images</h2>
-            {archivedImages.length > 0 && (
-              <button
-                onClick={handleFinalizeGallery}
-                disabled={isFinalizing}
-                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isFinalizing ? 'FINALISING...' : 'FINALISE GALLERY'}
-              </button>
-            )}
           </div>
           
           {archivedImages.length > 0 ? (
@@ -681,15 +666,24 @@ export default function GalleryManagement() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold text-yellow-400">Current Gallery Layout</h2>
-            {isLoading && (
-              <div className="text-yellow-400 text-sm flex items-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Refreshing Gallery...
-              </div>
-            )}
+            <div className="flex items-center gap-4">
+              {isLoading && (
+                <div className="text-yellow-400 text-sm flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Refreshing Gallery...
+                </div>
+              )}
+              <button
+                onClick={handleFinalizeGallery}
+                disabled={isFinalizing}
+                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isFinalizing ? 'FINALISING...' : 'FINALISE GALLERY'}
+              </button>
+            </div>
           </div>
           
           <p className="text-gray-300 mb-4">
@@ -769,6 +763,33 @@ export default function GalleryManagement() {
           ← Back to Dashboard
         </Link>
       </div>
+      
+      {/* Image Optimizer Modal */}
+      {showOptimizer && oversizedFile && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-yellow-400">Image Optimizer</h3>
+              <button 
+                onClick={() => setShowOptimizer(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+            
+            <StandaloneImageOptimizer 
+              initialFile={oversizedFile}
+              position={selectedPosition}
+              onSuccess={(optimizedImage) => {
+                setShowOptimizer(false);
+                handleOptimizedImageUploaded(optimizedImage);
+              }}
+              onCancel={() => setShowOptimizer(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

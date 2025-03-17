@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 
 // Add a GalleryAddCallback type for the callback function
@@ -13,16 +13,26 @@ type GalleryAddCallback = (data: {
 // Update the component props to include the callback function
 interface StandaloneImageOptimizerProps {
   onAddToGallery?: GalleryAddCallback;
+  initialFile?: File;
+  position?: number;
+  onSuccess?: (optimizedFile: File) => void;
+  onCancel?: () => void;
 }
 
-export default function StandaloneImageOptimizer({ onAddToGallery }: StandaloneImageOptimizerProps) {
+export default function StandaloneImageOptimizer({ 
+  onAddToGallery, 
+  initialFile, 
+  position = 1,
+  onSuccess,
+  onCancel
+}: StandaloneImageOptimizerProps) {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isAddingToGallery, setIsAddingToGallery] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFileSize, setSelectedFileSize] = useState<number | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
-  const [selectedPosition, setSelectedPosition] = useState<number>(1);
+  const [selectedPosition, setSelectedPosition] = useState<number>(position);
   const [optimizedImage, setOptimizedImage] = useState<{
     originalSize: number;
     optimizedSize: number;
@@ -32,6 +42,27 @@ export default function StandaloneImageOptimizer({ onAddToGallery }: StandaloneI
   } | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Determine if we're in standalone mode or modal/callback mode
+  const isCallbackMode = !!onSuccess;
+  
+  // Process the initialFile when provided
+  useEffect(() => {
+    if (initialFile) {
+      // Set file info
+      setSelectedFileSize(initialFile.size);
+      setSelectedFileName(initialFile.name);
+      
+      // Create preview
+      const previewUrl = URL.createObjectURL(initialFile);
+      setPreview(previewUrl);
+      
+      // Clean up preview URL when component unmounts
+      return () => {
+        URL.revokeObjectURL(previewUrl);
+      };
+    }
+  }, [initialFile]);
   
   // Handle file selection
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,12 +98,14 @@ export default function StandaloneImageOptimizer({ onAddToGallery }: StandaloneI
   
   // Handle form submission
   const handleOptimize = async () => {
-    if (!fileInputRef.current?.files?.length) {
+    // Use initialFile or get from input
+    const file = initialFile || (fileInputRef.current?.files?.[0]);
+    
+    if (!file) {
       setError('Please select an image to optimize.');
       return;
     }
     
-    const file = fileInputRef.current.files[0];
     setIsOptimizing(true);
     setError(null);
     
@@ -157,8 +190,8 @@ export default function StandaloneImageOptimizer({ onAddToGallery }: StandaloneI
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
   
-  // Handle download of optimized image
-  const handleDownload = async () => {
+  // Modified download function to also support sending back the optimized file
+  const handleDownload = async (saveLocally = true) => {
     if (!optimizedImage) return;
     
     try {
@@ -171,33 +204,45 @@ export default function StandaloneImageOptimizer({ onAddToGallery }: StandaloneI
       // Get the blob data
       const blob = await response.blob();
       
-      // Create a local URL for the blob
-      const blobUrl = URL.createObjectURL(blob);
+      if (saveLocally) {
+        // Create a local URL for the blob
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Create a temporary link to download the image
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        
+        // Process the original filename - remove UUID and timestamp
+        // Extract original file name from the Supabase filename
+        const originalFilename = imageNameFromFilePath(selectedFileName || optimizedImage.filename);
+        
+        // Add _optimized before the extension
+        const filenameParts = originalFilename.split('.');
+        const extension = filenameParts.pop() || 'jpg';
+        const nameWithoutExtension = filenameParts.join('.');
+        const cleanName = `${nameWithoutExtension}_optimized.${extension}`;
+        
+        link.download = cleanName;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }
       
-      // Create a temporary link to download the image
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      
-      // Process the original filename - remove UUID and timestamp
-      // Extract original file name from the Supabase filename
-      const originalFilename = imageNameFromFilePath(selectedFileName || optimizedImage.filename);
-      
-      // Add _optimized before the extension
-      const filenameParts = originalFilename.split('.');
-      const extension = filenameParts.pop() || 'jpg';
-      const nameWithoutExtension = filenameParts.join('.');
-      const cleanName = `${nameWithoutExtension}_optimized.${extension}`;
-      
-      link.download = cleanName;
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
+      // If onSuccess callback is provided, call it with the optimized file
+      if (onSuccess) {
+        // Convert blob to File object
+        const optimizedFile = new File([blob], 
+          optimizedImage.filename || 'optimized_image.jpg', 
+          { type: 'image/jpeg' }
+        );
+        onSuccess(optimizedFile);
+      }
     } catch (error) {
-      console.error('Error downloading image:', error);
-      setError('Failed to download the optimized image. Please try again or right-click and save image manually.');
+      console.error('Error processing optimized image:', error);
+      setError('Failed to process the optimized image.');
     }
   };
   
@@ -237,141 +282,162 @@ export default function StandaloneImageOptimizer({ onAddToGallery }: StandaloneI
       <h2 className="text-2xl font-bold text-yellow-400 mb-4">Image Optimizer</h2>
       
       <div className="flex flex-col gap-4">
-        {/* File Input */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Select Image (Max 15MB)
-          </label>
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleFileChange}
-            className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
-            disabled={isOptimizing}
-          />
-        </div>
-        
-        {/* File Size Display (before optimization) */}
-        {selectedFileSize !== null && !optimizedImage && (
-          <div className="mt-2 p-3 bg-gray-800 rounded-md text-sm">
-            <h4 className="font-medium text-yellow-400 mb-1">Original File</h4>
-            <p className="text-white">Size: {formatBytes(selectedFileSize)}</p>
-            <p className="text-gray-400 text-xs mt-1">Click "Optimize" to compress this image</p>
+        {/* File Input - only show in standalone mode */}
+        {!initialFile && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Select Image (Max 15MB)
+            </label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleFileChange}
+              className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+            />
           </div>
         )}
         
-        {/* Preview */}
+        {/* Image preview */}
         {preview && (
-          <div className="mt-2">
-            <p className="text-sm font-medium text-gray-300 mb-1">Preview</p>
-            <div className="relative bg-gray-800 rounded-md overflow-hidden" 
-                 style={{ height: '300px', maxWidth: '100%' }}>
-              <Image
-                src={preview}
-                alt="Image preview"
+          <div className="mb-4">
+            <h3 className="text-md font-medium text-gray-300 mb-2">Preview</h3>
+            <div className="relative w-full h-64 bg-gray-800 rounded-md overflow-hidden">
+              <Image 
+                src={preview} 
+                alt="Image preview" 
                 fill
                 style={{ objectFit: 'contain' }}
               />
             </div>
+            {selectedFileSize && selectedFileName && (
+              <div className="mt-2 text-sm text-gray-400">
+                {selectedFileName} - {formatBytes(selectedFileSize)}
+              </div>
+            )}
           </div>
         )}
         
-        {/* Optimization Stats - After optimization */}
+        {/* Error message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-md">
+            <p className="text-red-200">{error}</p>
+          </div>
+        )}
+        
+        {/* Optimize button - show if we have a preview but no optimized result yet */}
+        {preview && !optimizedImage && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={handleOptimize}
+              disabled={isOptimizing}
+              className="w-full bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isOptimizing ? 'Optimizing...' : 'Optimize Image'}
+            </button>
+          </div>
+        )}
+        
+        {/* Optimization results */}
         {optimizedImage && (
-          <div className="mt-2 p-4 bg-gray-800 rounded-md text-sm">
-            <h4 className="font-medium text-yellow-400 mb-3">Optimization Results</h4>
-            <div className="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
-              <span className="text-gray-300">Before:</span>
-              <span className="text-white">{formatBytes(optimizedImage.originalSize)}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
-              <span className="text-gray-300">After:</span>
-              <span className="text-white">{formatBytes(optimizedImage.optimizedSize)}</span>
-            </div>
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-gray-300">Saved:</span>
-              <span className="text-green-400 font-medium">{optimizedImage.compressionRate}%</span>
+          <div className="mb-4 p-4 bg-gray-800 rounded-md">
+            <h3 className="text-lg font-medium text-yellow-400 mb-2">Optimization Complete</h3>
+            
+            <div className="mb-4">
+              <div className="grid grid-cols-3 gap-4 mb-2">
+                <div className="text-center">
+                  <div className="text-sm text-gray-400">Original</div>
+                  <div className="text-md text-white">{formatBytes(optimizedImage.originalSize)}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-400">Optimized</div>
+                  <div className="text-md text-white">{formatBytes(optimizedImage.optimizedSize)}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-400">Saved</div>
+                  <div className="text-md text-green-400">{optimizedImage.compressionRate}%</div>
+                </div>
+              </div>
             </div>
             
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={handleDownload}
-                className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium"
-              >
-                Download Optimized Image
-              </button>
-              
-              {/* Gallery Position Selector and Add to Gallery Button */}
-              {onAddToGallery && (
-                <div className="mt-3 flex gap-2">
-                  <div className="flex-shrink-0 w-1/3">
-                    <select
-                      value={selectedPosition}
-                      onChange={(e) => setSelectedPosition(Number(e.target.value))}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
-                      disabled={isAddingToGallery}
-                    >
-                      {Array.from({ length: 8 }, (_, i) => i + 1).map(position => (
-                        <option key={position} value={position}>
-                          Position {position}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
+            <div className="relative w-full h-64 bg-gray-800 rounded-md overflow-hidden mb-4">
+              <Image 
+                src={optimizedImage.src} 
+                alt="Optimized image" 
+                fill
+                style={{ objectFit: 'contain' }}
+              />
+            </div>
+            
+            <div className="flex space-x-4">
+              {/* Different buttons based on mode */}
+              {isCallbackMode ? (
+                <>
+                  {/* In callback mode, show Use Image and Cancel buttons */}
                   <button
                     type="button"
-                    onClick={handleAddToGallery}
-                    disabled={isAddingToGallery}
-                    className="flex-grow bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded-md font-medium disabled:opacity-50"
+                    onClick={() => handleDownload(false)}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium"
                   >
-                    {isAddingToGallery ? 'Adding...' : 'Add to Gallery Now'}
+                    Use Optimized Image
                   </button>
-                </div>
+                  
+                  {onCancel && (
+                    <button
+                      type="button"
+                      onClick={onCancel}
+                      className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* In standalone mode, show Download and Add to Gallery buttons */}
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(true)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
+                  >
+                    Download
+                  </button>
+                  
+                  {onAddToGallery && (
+                    <button
+                      type="button"
+                      onClick={handleAddToGallery}
+                      disabled={isAddingToGallery}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isAddingToGallery ? 'Adding...' : 'Add to Gallery'}
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
         )}
         
-        {/* Error Message */}
-        {error && (
-          <div className="mt-2 p-3 bg-red-900/50 border border-red-500 rounded-md">
-            <p className="text-red-200 text-sm">{error}</p>
+        {/* Position selector - only show in non-callback mode with onAddToGallery */}
+        {!isCallbackMode && onAddToGallery && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Gallery Position
+            </label>
+            <select
+              value={selectedPosition}
+              onChange={(e) => setSelectedPosition(parseInt(e.target.value))}
+              className="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((pos) => (
+                <option key={pos} value={pos}>
+                  Position {pos}
+                </option>
+              ))}
+            </select>
           </div>
-        )}
-        
-        {/* Optimize Button */}
-        {!optimizedImage && (
-          <button
-            type="button"
-            onClick={handleOptimize}
-            disabled={isOptimizing || !preview}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 rounded-md font-bold 
-                     disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-          >
-            {isOptimizing ? 'Optimizing...' : 'Optimize Image'}
-          </button>
-        )}
-        
-        {/* New Image Button (after optimization) */}
-        {optimizedImage && (
-          <button
-            type="button"
-            onClick={() => {
-              setOptimizedImage(null);
-              setPreview(null);
-              setSelectedFileSize(null);
-              setSelectedFileName(null);
-              if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-              }
-            }}
-            className="mt-2 bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-md"
-          >
-            Optimize Another Image
-          </button>
         )}
       </div>
     </div>
