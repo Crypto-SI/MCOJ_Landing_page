@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import supabaseAdmin from '@/utils/supabaseAdmin';
 import { v4 as uuidv4 } from 'uuid';
 
+// Define a type for the gallery item
+interface GalleryItem {
+  id: string;
+  filename: string;
+  src: string;
+  position: number;
+  is_archived: boolean;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Check if supabaseAdmin is initialized
@@ -32,10 +41,13 @@ export async function POST(request: NextRequest) {
     
     // If there's an existing image at this position, archive it first
     if (existingImage) {
+      // Use type assertion after checking existingImage is not null
+      const imageToUpdate = existingImage as unknown as GalleryItem;
+      
       const { error: archiveError } = await supabaseAdmin
         .from('gallery')
         .update({ is_archived: true })
-        .eq('id', existingImage.id);
+        .eq('id', imageToUpdate.id);
       
       if (archiveError) {
         console.error('Error archiving existing image:', archiveError);
