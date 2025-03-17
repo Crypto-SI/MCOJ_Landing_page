@@ -3,7 +3,13 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: ['your-project-reference.supabase.co'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: process.env.NEXT_PUBLIC_SUPABASE_URL ? 
+          new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : '',
+      },
+    ],
   },
 }
 
