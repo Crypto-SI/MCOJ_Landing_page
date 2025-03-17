@@ -23,6 +23,19 @@ export default function Hero() {
       
       {/* Content */}
       <div className="relative z-20 container mx-auto px-4 text-center">
+        {/* Logo */}
+        <div className="mb-6 flex justify-center">
+          <div className="relative w-40 h-40 md:w-60 md:h-60">
+            <Image 
+              src="/images/ojsparkles.png-removebg-preview.png"
+              alt="MC OJ Logo"
+              fill
+              priority
+              className="object-contain drop-shadow-2xl"
+              sizes="(max-width: 768px) 160px, 240px"
+            />
+          </div>
+        </div>
         <h1 className="text-6xl md:text-8xl font-bank-gothic text-brand-gold mb-6 drop-shadow-lg hover:gold-shimmer">
           MC OJ
         </h1>
