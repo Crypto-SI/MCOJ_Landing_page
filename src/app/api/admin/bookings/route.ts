@@ -124,8 +124,7 @@ export async function PATCH(request: NextRequest) {
     if (result.success) {
       return NextResponse.json({ 
         success: true, 
-        message: 'Booking status updated successfully',
-        booking: result.data 
+        message: 'Booking status updated successfully'
       });
     } else {
       return NextResponse.json(

@@ -607,22 +607,21 @@ export async function checkRequiredBuckets(): Promise<{
   error?: string;
 }> {
   try {
-    // Check if Supabase client is initialized
+    // Check if supabaseAdmin is initialized
     if (!supabaseAdmin) {
-      throw new Error('Supabase client is not initialized');
+      return {
+        allExist: false,
+        missing: REQUIRED_BUCKETS,
+        error: 'Supabase admin client not initialized'
+      };
     }
     
     const missing: string[] = [];
     
+    // Check each required bucket
     for (const bucket of REQUIRED_BUCKETS) {
-      try {
-        const exists = await checkBucketExists(bucket);
-        if (!exists) {
-          missing.push(bucket);
-        }
-      } catch (error) {
-        console.error(`Error checking bucket ${bucket}:`, error);
-        // If we couldn't check, assume it's missing
+      const exists = await checkBucketExists(bucket);
+      if (!exists) {
         missing.push(bucket);
       }
     }
@@ -635,8 +634,8 @@ export async function checkRequiredBuckets(): Promise<{
     console.error('Error checking buckets:', error);
     return {
       allExist: false,
-      missing: [...REQUIRED_BUCKETS],
-      error: error instanceof Error ? error.message : String(error)
+      missing: [],
+      error: error instanceof Error ? error.message : 'Unknown error checking buckets'
     };
   }
 }
@@ -650,22 +649,21 @@ export async function checkRequiredTables(): Promise<{
   error?: string;
 }> {
   try {
-    // Check if Supabase client is initialized
+    // Check if supabaseAdmin is initialized
     if (!supabaseAdmin) {
-      throw new Error('Supabase client is not initialized');
+      return {
+        allExist: false,
+        missing: REQUIRED_TABLES,
+        error: 'Supabase admin client not initialized'
+      };
     }
     
     const missing: string[] = [];
     
+    // Check each required table
     for (const table of REQUIRED_TABLES) {
-      try {
-        const exists = await checkTableExists(table);
-        if (!exists) {
-          missing.push(table);
-        }
-      } catch (error) {
-        console.error(`Error checking table ${table}:`, error);
-        // If we couldn't check, assume it's missing
+      const exists = await checkTableExists(table);
+      if (!exists) {
         missing.push(table);
       }
     }
@@ -678,8 +676,8 @@ export async function checkRequiredTables(): Promise<{
     console.error('Error checking tables:', error);
     return {
       allExist: false,
-      missing: [...REQUIRED_TABLES],
-      error: error instanceof Error ? error.message : String(error)
+      missing: [],
+      error: error instanceof Error ? error.message : 'Unknown error checking tables'
     };
   }
 }
@@ -693,135 +691,89 @@ export async function migrateAllDataToSupabase(): Promise<{
   error?: string;
 }> {
   try {
-    // Check if Supabase client is initialized
+    // Check if supabaseAdmin is initialized
     if (!supabaseAdmin) {
-      throw new Error('Supabase client is not initialized. Check your environment variables.');
+      return {
+        success: false,
+        results: {},
+        error: 'Supabase admin client not initialized'
+      };
     }
     
-    // Test Supabase connection using storage operations which seem to work
+    // Check required buckets exist
+    const bucketsCheck = await checkRequiredBuckets();
+    if (!bucketsCheck.allExist) {
+      return {
+        success: false,
+        results: { bucketsCheck },
+        error: `Missing required storage buckets: ${bucketsCheck.missing.join(', ')}`
+      };
+    }
+    
+    // Check required tables exist
+    const tablesCheck = await checkRequiredTables();
+    if (!tablesCheck.allExist) {
+      return {
+        success: false,
+        results: { bucketsCheck, tablesCheck },
+        error: `Missing required database tables: ${tablesCheck.missing.join(', ')}`
+      };
+    }
+    
+    // Attempt to migrate all data types
+    const results: Record<string, any> = {
+      bucketsCheck,
+      tablesCheck
+    };
+    
+    // Migrate gallery
     try {
-      console.log('Testing Supabase connection...');
-      
-      // First test storage access - we know this works from logs
-      const { data: buckets, error: bucketsError } = await supabaseAdmin.storage.listBuckets();
-      
-      if (bucketsError) {
-        throw new Error(`Supabase storage access failed: ${bucketsError.message}`);
-      }
-      
-      console.log(`Found ${buckets.length} storage buckets`);
-      
-      // Then check if tables exist and create them if needed
-      console.log('Checking database tables...');
-      const tablesResult = await checkRequiredTables();
-      
-      if (!tablesResult.allExist) {
-        console.log(`Missing tables: ${tablesResult.missing.join(', ')}`);
-        console.log('Attempting to create missing tables...');
-        
-        const createResult = await ensureRequiredTables();
-        
-        if (createResult.created.length > 0) {
-          console.log(`Created tables: ${createResult.created.join(', ')}`);
-        }
-        
-        if (createResult.missing.length > 0) {
-          throw new Error(`Failed to create some required tables: ${createResult.missing.join(', ')}`);
-        }
-      }
-      
-      console.log('Supabase connection successful');
-    } catch (connectionError) {
-      console.error('Supabase connection error:', connectionError);
-      throw new Error(`Failed to connect to Supabase: ${connectionError instanceof Error ? connectionError.message : String(connectionError)}`);
-    }
-    
-    // First check if all required buckets exist
-    const bucketCheck = await checkRequiredBuckets();
-    if (!bucketCheck.allExist) {
-      console.error(`Cannot migrate data: Missing required buckets: ${bucketCheck.missing.join(', ')}`);
-      console.error('Please set up the buckets first using the Bucket Setup Tool.');
-      return {
-        success: false,
-        results: {
-          gallery: false,
-          events: false,
-          videos: false,
-          bookings: false
-        },
-        error: `Missing required buckets: ${bucketCheck.missing.join(', ')}`
+      results.gallery = await migrateGallery();
+    } catch (galleryError) {
+      console.error('Gallery migration failed:', galleryError);
+      results.gallery = { 
+        success: false, 
+        error: galleryError instanceof Error ? galleryError.message : 'Unknown gallery migration error' 
       };
     }
     
-    const galleryResult = await migrateGallery();
-    const eventsResult = await migrateEvents();
-    const videosResult = await migrateVideos();
+    // Migrate events
+    try {
+      results.events = await migrateEvents();
+    } catch (eventsError) {
+      console.error('Events migration failed:', eventsError);
+      results.events = { 
+        success: false, 
+        error: eventsError instanceof Error ? eventsError.message : 'Unknown events migration error' 
+      };
+    }
     
-    // Handle results that contain error details
-    const formatResult = (result: any) => {
-      if (result === true) return true;
-      if (result && typeof result === 'object' && 'success' in result && result.success === false) {
-        console.error(`Migration error:`, result.error);
-        return false;
-      }
-      return !!result;
+    // Migrate videos
+    try {
+      results.videos = await migrateVideos();
+    } catch (videosError) {
+      console.error('Videos migration failed:', videosError);
+      results.videos = { 
+        success: false, 
+        error: videosError instanceof Error ? videosError.message : 'Unknown videos migration error' 
+      };
+    }
+    
+    // Overall success if all migrations succeeded
+    const success = results.gallery?.success && 
+                    results.events?.success &&
+                    results.videos?.success;
+    
+    return {
+      success,
+      results
     };
-    
-    const results = {
-      gallery: formatResult(galleryResult),
-      events: formatResult(eventsResult),
-      videos: formatResult(videosResult),
-      bookings: false // No migration implementation yet
-    };
-    
-    // Collect detailed error information
-    const errors: string[] = [];
-    if (galleryResult && typeof galleryResult === 'object' && 'error' in galleryResult) {
-      errors.push(`Gallery: ${galleryResult.error}`);
-    }
-    if (eventsResult && typeof eventsResult === 'object' && 'error' in eventsResult) {
-      errors.push(`Events: ${eventsResult.error}`);
-    }
-    if (videosResult && typeof videosResult === 'object' && 'error' in videosResult) {
-      errors.push(`Videos: ${videosResult.error}`);
-    }
-    
-    const allSuccessful = Object.values(results).every(Boolean);
-    
-    if (allSuccessful) {
-      console.log('All data successfully migrated to Supabase!');
-      return {
-        success: true,
-        results
-      };
-    } else {
-      const failedMigrations = Object.entries(results)
-        .filter(([_, success]) => !success)
-        .map(([name]) => name);
-      
-      const errorMessage = errors.length > 0 
-        ? `Migration errors: ${errors.join('; ')}` 
-        : `Migration completed with errors in: ${failedMigrations.join(', ')}`;
-      
-      console.log(errorMessage);
-      return {
-        success: false,
-        results,
-        error: errorMessage
-      };
-    }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Migration failed:', errorMessage);
+    console.error('Migration error:', error);
     return {
       success: false,
-      results: {
-        gallery: false,
-        events: false,
-        videos: false,
-        bookings: false
-      },
-      error: errorMessage
+      results: {},
+      error: error instanceof Error ? error.message : 'Unknown migration error'
     };
   }
 }
