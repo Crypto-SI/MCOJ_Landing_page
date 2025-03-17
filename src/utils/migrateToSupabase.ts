@@ -261,7 +261,7 @@ export async function migrateGallery() {
     // Insert data into Supabase
     const { data, error } = await supabaseAdmin
       .from('gallery')
-      .upsert(galleryItems, { 
+      .upsert(galleryItems as unknown as Record<string, unknown>[], { 
         onConflict: 'src',
         ignoreDuplicates: false
       });
@@ -384,7 +384,7 @@ export async function migrateEvents() {
     // Insert data into Supabase
     const { data, error } = await supabaseAdmin
       .from('events')
-      .upsert(events, {
+      .upsert(events as unknown as Record<string, unknown>[], {
         onConflict: 'id',
         ignoreDuplicates: false
       });
@@ -501,7 +501,7 @@ export async function migrateVideos() {
     // Insert data into Supabase
     const { data, error } = await supabaseAdmin
       .from('videos')
-      .upsert(videos, {
+      .upsert(videos as unknown as Record<string, unknown>[], {
         onConflict: 'id',
         ignoreDuplicates: false
       });
