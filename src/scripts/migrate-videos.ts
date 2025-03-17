@@ -12,6 +12,12 @@ async function migrateVideos() {
   console.log('Starting videos migration...');
   
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not initialized');
+      return;
+    }
+    
     // Ensure the data file exists
     if (!fs.existsSync(VIDEOS_FILE_PATH)) {
       console.error('Videos data file does not exist:', VIDEOS_FILE_PATH);
