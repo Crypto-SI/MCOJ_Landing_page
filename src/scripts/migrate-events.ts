@@ -10,6 +10,12 @@ async function migrateEvents() {
   console.log('Starting events migration...');
   
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not initialized');
+      return;
+    }
+    
     // Ensure the data file exists
     if (!fs.existsSync(EVENTS_FILE_PATH)) {
       console.error('Events data file does not exist:', EVENTS_FILE_PATH);
