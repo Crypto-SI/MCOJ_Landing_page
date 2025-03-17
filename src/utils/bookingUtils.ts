@@ -23,6 +23,11 @@ export interface BookingRequest {
  */
 export async function createBookingRequest(bookingData: Omit<BookingRequest, 'id' | 'created_at' | 'updated_at' | 'status'>) {
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      throw new Error('Supabase admin client not initialized');
+    }
+
     // Format date if not already in ISO format
     let formattedData = {
       ...bookingData,
@@ -63,6 +68,11 @@ export async function getBookingRequests(filters?: {
   offset?: number;
 }) {
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      throw new Error('Supabase admin client not initialized');
+    }
+    
     let query = supabaseAdmin
       .from('booking_requests')
       .select('*');
@@ -119,9 +129,9 @@ export async function getBookingRequests(filters?: {
 }
 
 /**
- * Updates a booking request status
- * @param id - The booking request ID
- * @param status - The new status
+ * Updates the status of a booking request
+ * @param id - Booking request ID
+ * @param status - New status value
  * @returns Promise with success status and data or error
  */
 export async function updateBookingStatus(
@@ -129,17 +139,23 @@ export async function updateBookingStatus(
   status: BookingRequest['status']
 ) {
   try {
-    const { data, error } = await supabaseAdmin
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      throw new Error('Supabase admin client not initialized');
+    }
+    
+    const { error } = await supabaseAdmin
       .from('booking_requests')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select();
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
     
     if (error) throw error;
     
     return {
-      success: true,
-      data: data?.[0] || null,
+      success: true
     };
   } catch (error) {
     console.error('Error updating booking status:', error);
@@ -152,11 +168,16 @@ export async function updateBookingStatus(
 
 /**
  * Deletes a booking request
- * @param id - The booking request ID
- * @returns Promise with success status
+ * @param id - Booking request ID
+ * @returns Promise with success status or error
  */
 export async function deleteBookingRequest(id: string) {
   try {
+    // Check if supabaseAdmin is initialized
+    if (!supabaseAdmin) {
+      throw new Error('Supabase admin client not initialized');
+    }
+    
     const { error } = await supabaseAdmin
       .from('booking_requests')
       .delete()
@@ -164,7 +185,9 @@ export async function deleteBookingRequest(id: string) {
     
     if (error) throw error;
     
-    return { success: true };
+    return {
+      success: true
+    };
   } catch (error) {
     console.error('Error deleting booking request:', error);
     return {
