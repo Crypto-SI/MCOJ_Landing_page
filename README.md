@@ -103,6 +103,7 @@ src/
 - Events management with CRUD functionality
 - Gallery management with archive system
 - Video management with browser-based thumbnail generation
+- Database storage monitoring and management
 
 ### Gallery Management
 - Upload new images with automatic processing
@@ -176,8 +177,15 @@ Our brand new gallery management system makes it easy to keep MC OJ's image gall
 - **Image Requirements Enforcement**: Ensures all images meet quality standards
   - Supported formats: JPG and PNG
   - Ideal resolution: 1200×800 pixels
-  - Maximum file size: 5MB
+  - Maximum file size: 5MB (direct upload) or 10MB (with optimization)
   - Automatic resizing while preserving aspect ratio
+
+- **Advanced Image Optimization**: Professional-grade image compression
+  - Automatic detection of large images (>1MB)
+  - Built-in TinyPNG optimization for large images
+  - Up to 80% file size reduction while preserving quality
+  - Visual comparison of before/after optimization results
+  - Seamless integration with gallery uploads
 
 - **Placeholder System**: Organized gallery with 8 image slots
   - Easily manage which images appear in which positions
@@ -188,9 +196,24 @@ Our brand new gallery management system makes it easy to keep MC OJ's image gall
   - Restore archived images to any available position
   - Permanently delete images when no longer needed
 
+- **Orphaned Files Detection**: Smart file management
+  - Automatically identifies files in Supabase storage that aren't linked to gallery entries
+  - Easily reclaim or remove orphaned images
+  - Prevents storage clutter and resource waste
+  - Focused only on image files from the gallery bucket
+
 - **FINALISE Button**: One-click publishing
   - Update the public-facing gallery with current selections
   - Seamless transition from admin to public view
+
+### How to Use Image Optimization
+1. Navigate to the Gallery Management section
+2. Upload an image over 1MB in size
+3. The system will automatically recommend optimization
+4. Click the "Open Image Optimizer" button
+5. Review the optimization results showing size reduction
+6. Click "Optimize & Upload to Gallery" to complete the process
+7. Image is automatically placed in your selected position
 
 ### How to Access
 1. Navigate to `/admin/login`
@@ -233,3 +256,90 @@ KEEP IT LOCKED! 🎤🔥
 For bookings and inquiries:
 - 📧 bookings@mcoj.com
 - 📱 +44 7700 900000 
+
+## 📊 Database Management System
+
+Our storage monitoring system gives you complete visibility into your Supabase storage usage:
+
+### Key Features
+- **Visual Storage Dashboard**: Color-coded progress bar shows storage usage at a glance
+  - Red sections represent video files
+  - Blue sections represent image files
+  - Green sections represent other file types
+  
+- **Detailed Breakdown**: Get precise information about your storage
+  - Total usage out of 50MB limit
+  - Number of files by category
+  - Percentage of total storage used
+  
+- **Usage Warnings**: Automatic alerts when storage is running low
+  - Visual warnings when usage exceeds 80%
+  - Recommendations for storage management
+  
+- **Real-time Updates**: Always see the current state of your database
+  - Accurate file counts across all storage buckets
+  - Precise size measurements in appropriate units
+
+### How to Access
+1. Navigate to `/admin/login`
+2. Enter admin credentials
+3. View storage statistics directly on the admin dashboard 
+
+## Database Schema Implementation
+
+The website now uses Supabase as its database backend with the following schema:
+
+### Gallery Table
+Stores all gallery images with position information:
+- `id`: UUID (primary key)
+- `created_at`: Timestamp
+- `updated_at`: Timestamp
+- `filename`: Text
+- `src`: Text (URL to image)
+- `placeholder_position`: Integer (1-8, nullable)
+- `is_archived`: Boolean
+- `metadata`: JSONB
+
+### Events Table
+Stores all event information:
+- `id`: UUID (primary key)
+- `created_at`: Timestamp
+- `updated_at`: Timestamp
+- `date`: Date
+- `venue`: Text
+- `event_name`: Text
+- `address`: Text (nullable)
+- `postcode`: Text (nullable)
+- `time_start`: Text (nullable)
+- `time_end`: Text (nullable)
+- `ticket_link`: Text (nullable)
+- `position`: Integer (nullable)
+- `is_archived`: Boolean
+
+### Booking Requests Table
+Stores all booking form submissions:
+- `id`: UUID (primary key)
+- `created_at`: Timestamp
+- `updated_at`: Timestamp
+- `name`: Text
+- `email`: Text
+- `phone`: Text (nullable)
+- `venue`: Text
+- `event_date`: Date
+- `event_time`: Text (nullable)
+- `event_type`: Text (nullable)
+- `additional_info`: Text (nullable)
+- `status`: Text ('new', 'contacted', 'booked', 'declined', 'canceled')
+
+### Data Migration
+The website includes a data migration tool in the admin dashboard to transfer existing JSON data to Supabase. The migration process:
+1. Reads data from JSON files
+2. Formats it appropriately for Supabase tables
+3. Inserts it into the corresponding tables using upsert operations
+
+### Security Implementation
+The database uses Row Level Security (RLS) to control access:
+- Public read access is allowed for non-archived gallery images and events
+- Public write access is only allowed for booking form submissions
+- All other operations require authentication
+- The admin dashboard uses a simple authentication mechanism 

@@ -16,6 +16,7 @@ export default function AdminNavigation() {
     { href: '/admin/gallery', label: 'Gallery Management' },
     { href: '/admin/events', label: 'Events Management' },
     { href: '/admin/videos', label: 'Videos Management' },
+    { href: '/admin/debug', label: 'Debug Tools' },
   ]
 
   return (

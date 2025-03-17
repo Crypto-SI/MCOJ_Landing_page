@@ -21,10 +21,34 @@ export default function LoginPage() {
     // Simple authentication - in production, you'd use a proper auth system
     // Here we're just checking for demo credentials
     if (username === 'admin' && password === 'admin123') {
-      // Store authentication status in localStorage (not recommended for production)
-      localStorage.setItem('mcoj_admin_authenticated', 'true')
-      // Redirect to admin dashboard
-      router.push('/admin/dashboard')
+      try {
+        // Store authentication status in localStorage
+        localStorage.setItem('mcoj_admin_authenticated', 'true')
+        
+        // Set the authentication cookie for API calls
+        const response = await fetch('/api/admin/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            username, 
+            password,
+            // Token only used for validation, not storing password
+            token: 'admin123' 
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to set authentication cookie');
+        }
+        
+        // Redirect to admin dashboard
+        router.push('/admin/dashboard')
+      } catch (err) {
+        console.error('Authentication error:', err);
+        setError('Error during authentication. Please try again.');
+      }
     } else {
       setError('Invalid username or password')
     }

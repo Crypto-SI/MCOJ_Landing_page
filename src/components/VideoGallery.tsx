@@ -114,7 +114,8 @@ export default function VideoGallery() {
   useEffect(() => {
     const loadVideos = async () => {
       setIsLoading(true);
-      const fetchedVideos = await fetchVideos();
+      // Only fetch non-archived videos for the public gallery
+      const fetchedVideos = await fetchVideos(false);
       setVideos(fetchedVideos);
       setIsLoading(false);
     };

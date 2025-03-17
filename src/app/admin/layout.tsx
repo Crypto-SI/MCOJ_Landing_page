@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import '../../styles/globals.css'
 import AdminNavigation from '@/components/AdminNavigation'
 import Image from 'next/image'
+import AdminErrorBoundary from '@/components/AdminErrorBoundary'
 
 export const metadata: Metadata = {
   title: 'Admin Dashboard - MC OJ',
@@ -31,7 +32,9 @@ export default function AdminLayout({
         </header>
         <AdminNavigation />
         <main className="flex-grow p-6">
-          {children}
+          <AdminErrorBoundary>
+            {children}
+          </AdminErrorBoundary>
         </main>
         <footer className="bg-black text-yellow-400 p-4 text-center border-t border-gray-800">
           <p className="text-sm">© {new Date().getFullYear()} MC OJ - Admin Panel</p>

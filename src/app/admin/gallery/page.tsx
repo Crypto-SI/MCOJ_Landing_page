@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import OptimizedImageUploader from '@/components/OptimizedImageUploader'
+import StandaloneImageOptimizer from '@/components/StandaloneImageOptimizer'
 import { 
   GalleryImage, 
   GALLERY_PLACEHOLDERS,
@@ -14,6 +16,13 @@ import {
   findAvailablePosition,
   finalizeGallery
 } from '@/utils/galleryClientUtils'
+import { createClient } from '@supabase/supabase-js'
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function GalleryManagement() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -25,10 +34,20 @@ export default function GalleryManagement() {
   const [isRestoring, setIsRestoring] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [isFinalizing, setIsFinalizing] = useState(false)
-  const [selectedPosition, setSelectedPosition] = useState<number | null>(null)
+  const [selectedPosition, setSelectedPosition] = useState<number>(0)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [oversizedFile, setOversizedFile] = useState<File | null>(null)
+  const [showOptimizer, setShowOptimizer] = useState(false)
+  const [activeTab, setActiveTab] = useState<'gallery' | 'archived' | 'orphaned'>('gallery')
+  const [orphanedFiles, setOrphanedFiles] = useState<{
+    orphanedFiles: Array<{ name: string; size: number; path: string }>;
+    archivedFiles: Array<{ name: string; size: number; path: string }>;
+    totalOrphaned: number;
+    totalArchived: number;
+  } | null>(null)
+  const [isLoadingOrphaned, setIsLoadingOrphaned] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   
@@ -38,10 +57,14 @@ export default function GalleryManagement() {
       console.log('Fetching gallery images...');
       setIsLoading(true);
       
+      // Clear existing gallery data to ensure fresh state
+      setGalleryImages([]);
+      
       const data = await fetchGalleryImages(true);
       
       console.log('Gallery images response:', data);
       
+      // Update with fresh gallery data
       setGalleryImages(data.images || []);
       console.log(`Loaded ${data.images?.length || 0} active gallery images`);
       
@@ -93,17 +116,18 @@ export default function GalleryManagement() {
   }
 
   // Handle file selection
-  const handleFileSelect = (position?: number) => {
-    setSelectedPosition(position || null);
+  const handleFileSelect = (position: number) => {
+    setSelectedPosition(position);
     if (fileInputRef.current) {
-      fileInputRef.current.click()
+      fileInputRef.current.click();
     }
-  }
+  };
 
-  // Handle file upload
+  // Handle file upload (with size check)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null)
     setSuccessMessage(null)
+    setOversizedFile(null)
     
     const file = e.target.files?.[0]
     if (!file) {
@@ -120,10 +144,12 @@ export default function GalleryManagement() {
       return
     }
 
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024 // 5MB
+    // Validate file size (1MB max for direct upload)
+    const maxSize = 1 * 1024 * 1024 // 1MB
     if (file.size > maxSize) {
-      setUploadError('File size exceeds 5MB limit.')
+      console.log('File too large, showing optimization option');
+      setOversizedFile(file);
+      setUploadError(`Image size (${(file.size / (1024 * 1024)).toFixed(2)}MB) exceeds 1MB limit. Please optimize it first.`);
       return
     }
 
@@ -168,13 +194,74 @@ export default function GalleryManagement() {
       setUploadError(error instanceof Error ? error.message : 'Failed to upload image')
     } finally {
       setIsUploading(false)
-      setSelectedPosition(null)
+      setSelectedPosition(0)
       // Reset the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
     }
   }
+  
+  // Handle optimized image uploaded - fix type safety issue
+  const handleOptimizedImageUploaded = async (optimizedFile: File) => {
+    if (selectedPosition === 0) {
+      console.error('No position selected for optimized image');
+      return;
+    }
+    
+    try {
+      setIsUploading(true);
+      setUploadError(null);
+      
+      // Upload the optimized file
+      const { data, error } = await supabase.storage
+        .from('gallery')
+        .upload(`gallery_image_${selectedPosition}.jpg`, optimizedFile, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+      
+      if (error) throw error;
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('gallery')
+        .getPublicUrl(`gallery_image_${selectedPosition}.jpg`);
+      
+      // Add to gallery images state
+      setGalleryImages(prev => {
+        const newImages = [...prev];
+        const existingIndex = newImages.findIndex(img => img.placeholderPosition === selectedPosition);
+        
+        if (existingIndex >= 0) {
+          newImages[existingIndex] = {
+            ...newImages[existingIndex],
+            src: publicUrl,
+            placeholderPosition: selectedPosition
+          };
+        } else {
+          newImages.push({
+            id: `gallery_image_${selectedPosition}`,
+            src: publicUrl,
+            alt: `Gallery image ${selectedPosition}`,
+            placeholderPosition: selectedPosition
+          });
+        }
+        
+        return newImages;
+      });
+      
+      setSuccessMessage('Image uploaded successfully');
+      setShowOptimizer(false);
+      setOversizedFile(null);
+    } catch (error) {
+      console.error('Error uploading optimized image:', error);
+      setUploadError(error instanceof Error ? error.message : 'Failed to upload optimized image');
+    } finally {
+      setIsUploading(false);
+      setSelectedPosition(0);
+    }
+  };
 
   // Handle archiving an image (move from gallery to archive)
   const handleArchiveImage = async (image: GalleryImage) => {
@@ -198,337 +285,489 @@ export default function GalleryManagement() {
       
       const result = await archiveClientImage(image.placeholderPosition);
       
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to archive image');
+      if (result.success) {
+        setSuccessMessage(`Image at position ${image.placeholderPosition} archived successfully`);
+        loadGalleryImages();
+      } else {
+        setActionError(result.message || 'Failed to archive image');
       }
-
-      setSuccessMessage(result.message || 'Image archived successfully!');
-      
-      // Refresh gallery images to ensure everything is up to date
-      loadGalleryImages();
     } catch (error) {
-      console.error('Error archiving image:', error)
-      setActionError(error instanceof Error ? error.message : 'Failed to archive image')
+      console.error('Error archiving image:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to archive image');
     } finally {
-      setIsArchiving(null)
+      setIsArchiving(null);
     }
   }
   
-  // Handle restoring an archived image to a specific position
+  // Handle restoring an image from archive to gallery
   const handleRestoreImage = async (archivedImage: GalleryImage, position: number) => {
     setActionError(null)
     setSuccessMessage(null)
+    
+    // Check if the image ID is valid
+    if (!archivedImage.id) {
+      setActionError('Cannot restore this image: missing ID');
+      return;
+    }
+    
     setIsRestoring(archivedImage.id);
 
     try {
-      console.log('Restoring archived image:', archivedImage.id, 'to position:', position);
+      console.log('Restoring image to position:', position);
       
       const result = await restoreClientImage(archivedImage.id, position);
       
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to restore image');
+      if (result.success) {
+        setSuccessMessage(`Image restored to position ${position} successfully`);
+        loadGalleryImages();
+      } else {
+        setActionError(result.message || 'Failed to restore image');
       }
-
-      setSuccessMessage(result.message || `Image restored to position ${position} successfully!`);
-      
-      // Refresh gallery images to ensure everything is up to date
-      loadGalleryImages();
     } catch (error) {
-      console.error('Error restoring image:', error)
-      setActionError(error instanceof Error ? error.message : 'Failed to restore image')
+      console.error('Error restoring image:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to restore image');
     } finally {
-      setIsRestoring(null)
+      setIsRestoring(null);
     }
   }
 
-  // Handle permanent deletion of an archived image
+  // Handle permanently deleting an archived image
   const handleDeleteArchivedImage = async (archivedImage: GalleryImage) => {
     setActionError(null)
     setSuccessMessage(null)
-    setIsDeleting(archivedImage.id);
-
-    if (!confirm(`Are you sure you want to PERMANENTLY delete this archived image? This action cannot be undone.`)) {
-      setIsDeleting(null)
+    
+    // Check if the image ID is valid
+    if (!archivedImage.id) {
+      setActionError('Cannot delete this image: missing ID');
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to permanently delete this image? This action cannot be undone.`)) {
       return
     }
+    
+    setIsDeleting(archivedImage.id);
 
     try {
       console.log('Deleting archived image:', archivedImage.id);
       
       const result = await deleteArchivedClientImage(archivedImage.id);
       
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to delete archived image');
+      if (result.success) {
+        setSuccessMessage(`Image deleted successfully`);
+        loadGalleryImages();
+      } else {
+        setActionError(result.message || 'Failed to delete image');
       }
-
-      setSuccessMessage(result.message || 'Archived image permanently deleted!');
-      
-      // Refresh gallery images to ensure everything is up to date
-      loadGalleryImages();
     } catch (error) {
-      console.error('Error deleting archived image:', error)
-      setActionError(error instanceof Error ? error.message : 'Failed to delete archived image')
+      console.error('Error deleting image:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to delete image');
     } finally {
-      setIsDeleting(null)
+      setIsDeleting(null);
     }
   }
 
-  // Handle finalizing the gallery (update the public website)
+  // Handle finalizing the gallery (update the Gallery component)
   const handleFinalizeGallery = async () => {
-    setActionError(null);
-    setSuccessMessage(null);
+    setActionError(null)
+    setSuccessMessage(null)
+    
+    if (!confirm(`Are you sure you want to finalize the gallery? This will update the public-facing website.`)) {
+      return
+    }
+    
     setIsFinalizing(true);
-
-    if (galleryImages.length === 0) {
-      setActionError('No images to finalize. Please add at least one image to the gallery.');
-      setIsFinalizing(false);
-      return;
-    }
-
-    if (!confirm('Are you sure you want to update the public website with these gallery images? This will replace the current gallery shown to visitors.')) {
-      setIsFinalizing(false);
-      return;
-    }
 
     try {
       console.log('Finalizing gallery...');
       
       const result = await finalizeGallery();
       
-      if (!result.success) {
-        throw new Error(result.message || 'Failed to finalize gallery');
+      if (result.success) {
+        setSuccessMessage(`Gallery finalized successfully. Changes are now live on the public site.`);
+      } else {
+        setActionError(result.message || 'Failed to finalize gallery');
       }
-
-      setSuccessMessage(`Gallery finalized successfully! The website now displays your ${result.imageCount} curated images.`);
-      
     } catch (error) {
       console.error('Error finalizing gallery:', error);
       setActionError(error instanceof Error ? error.message : 'Failed to finalize gallery');
     } finally {
       setIsFinalizing(false);
     }
+  }
+
+  // Load orphaned files
+  const loadOrphanedFiles = async () => {
+    try {
+      setIsLoadingOrphaned(true);
+      const response = await fetch('/api/gallery/orphaned');
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch orphaned files');
+      }
+      
+      setOrphanedFiles(data);
+    } catch (error) {
+      console.error('Error loading orphaned files:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to load orphaned files');
+    } finally {
+      setIsLoadingOrphaned(false);
+    }
+  };
+
+  // Clean up orphaned files
+  const handleCleanupOrphanedFiles = async (files: string[]) => {
+    if (!confirm(`Are you sure you want to delete ${files.length} orphaned files? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      setIsLoadingOrphaned(true);
+      
+      const response = await fetch('/api/gallery/orphaned', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          filesToDelete: files
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to clean up orphaned files');
+      }
+      
+      // Check for partial success with some errors
+      if (result.errors && result.errors.length > 0) {
+        console.warn('Some files could not be deleted:', result.errors);
+        setActionError(`Cleaned up files with some errors. Check console for details.`);
+      } else {
+        setSuccessMessage(`Cleaned up ${result.deletedFiles.length} orphaned files`);
+      }
+      
+      // Reload the orphaned files list
+      await loadOrphanedFiles();
+    } catch (error) {
+      console.error('Error cleaning up orphaned files:', error);
+      setActionError(error instanceof Error ? error.message : 'Failed to clean up orphaned files');
+    } finally {
+      setIsLoadingOrphaned(false);
+    }
   };
 
   return (
-    <div className="space-y-6 text-yellow-400">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-yellow-400">Gallery Management</h1>
-        <Link 
-          href="/admin/dashboard"
-          className="bg-gray-800 hover:bg-gray-900 text-yellow-400 px-4 py-2 rounded-md"
-        >
-          Back to Dashboard
-        </Link>
-      </div>
-
-      {/* Success/Error Messages */}
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <h1 className="text-3xl font-bold mb-8 text-center">Gallery Management</h1>
+      
+      {/* Messages */}
       {successMessage && (
-        <div className="bg-green-900 border border-green-700 text-yellow-400 px-4 py-3 rounded">
-          {successMessage}
+        <div className="mb-4 p-3 bg-green-900/50 border border-green-500 rounded-md">
+          <p className="text-green-200">{successMessage}</p>
         </div>
       )}
-      
       {uploadError && (
-        <div className="bg-red-900 border border-red-700 text-yellow-400 px-4 py-3 rounded">
-          Upload Error: {uploadError}
+        <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-md">
+          <div className="flex flex-col gap-3">
+            <p className="text-red-200">{uploadError}</p>
+            {oversizedFile && (
+              <div>
+                <button 
+                  onClick={() => setShowOptimizer(true)}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded-md font-medium"
+                >
+                  Open Image Optimizer
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {actionError && (
+        <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-md">
+          <p className="text-red-200">{actionError}</p>
         </div>
       )}
       
-      {actionError && (
-        <div className="bg-red-900 border border-red-700 text-yellow-400 px-4 py-3 rounded">
-          Action Error: {actionError}
-        </div>
-      )}
-
-      {/* Image Upload Section */}
-      <div className="bg-gray-900 p-6 rounded-lg shadow-md border border-gray-700">
-        <h2 className="text-xl font-bold mb-4 text-yellow-400">Upload New Image</h2>
-        <div className="mb-4 bg-black p-4 rounded-md border border-gray-700">
-          <h3 className="text-lg font-semibold text-yellow-400 mb-2">Image Requirements:</h3>
-          <ul className="list-disc list-inside space-y-1 text-yellow-300">
-            <li>Formats: JPG or PNG (JPEG preferred for photos)</li>
-            <li>Ideal resolution: 1200×800 pixels (landscape orientation)</li>
-            <li>Minimum resolution: 800×600 pixels</li>
-            <li>Maximum file size: 5MB</li>
-            <li>Maximum 8 images in the gallery at once</li>
-            <li>Images will be automatically resized to fit if needed (aspect ratio preserved)</li>
-          </ul>
-        </div>
-        <div 
-          className="border-dashed border-2 border-gray-600 p-6 rounded-md text-center bg-black"
-          onClick={() => handleFileSelect()}
-        >
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            className="hidden"
-            accept="image/jpeg,image/jpg,image/png"
-          />
-          <p className="mb-4 text-yellow-300">Drag and drop an image here, or click to select a file</p>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation() // Prevent double selection
-              handleFileSelect()
-            }}
-            disabled={isUploading || galleryImages.length >= 8}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded-md font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isUploading ? 'Uploading...' : galleryImages.length >= 8 ? 'Gallery Full' : 'Select Image'}
-          </button>
-          {galleryImages.length >= 8 && (
-            <p className="mt-2 text-red-400">Gallery is full. Archive some images to make space.</p>
-          )}
-          <p className="mt-2 text-sm text-yellow-200">Images will be processed automatically to fit the gallery</p>
-        </div>
-      </div>
-
-      {/* Gallery Status */}
-      <div className="bg-black p-4 rounded-md border border-gray-700 my-4">
-        <div className="flex justify-between items-center">
-          <p className="text-yellow-400 font-semibold">Gallery Status: {galleryImages.length}/8 images active, {archivedImages.length} images in archive</p>
-          
-          {/* Finalize Gallery Button */}
+      {/* Tab Navigation */}
+      <div className="flex justify-between items-center mb-8">
+        <div className="flex space-x-4">
           <button
-            onClick={handleFinalizeGallery}
-            disabled={isFinalizing || galleryImages.length === 0}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 rounded-md font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setActiveTab('gallery')}
+            className={`px-4 py-2 rounded-md ${
+              activeTab === 'gallery' ? 'bg-yellow-600' : 'bg-gray-700'
+            }`}
           >
-            {isFinalizing ? 'Finalizing...' : 'FINALISE GALLERY'}
+            Gallery
+          </button>
+          <button
+            onClick={() => setActiveTab('archived')}
+            className={`px-4 py-2 rounded-md ${
+              activeTab === 'archived' ? 'bg-yellow-600' : 'bg-gray-700'
+            }`}
+          >
+            Archived
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('orphaned');
+              loadOrphanedFiles();
+            }}
+            className={`px-4 py-2 rounded-md ${
+              activeTab === 'orphaned' ? 'bg-yellow-600' : 'bg-gray-700'
+            }`}
+          >
+            Orphaned Files
           </button>
         </div>
-        {galleryImages.length === 0 && (
-          <p className="text-red-400 mt-2">Add at least one image to finalize the gallery.</p>
-        )}
       </div>
 
-      {/* Gallery Images Grid */}
-      <div className="bg-gray-900 p-6 rounded-lg shadow-md border border-gray-700">
-        <h2 className="text-xl font-bold mb-4 text-yellow-400">Active Gallery Images ({galleryImages.length}/8)</h2>
-        
-        {isLoading ? (
-          <p className="text-yellow-300 text-center py-6">Loading gallery images...</p>
-        ) : galleryImages.length === 0 ? (
-          <p className="text-yellow-300 text-center py-6">No images in the gallery yet.</p>
-        ) : (
+      {/* Content based on active tab */}
+      {activeTab === 'orphaned' ? (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold text-yellow-400">Orphaned Files</h2>
+            {orphanedFiles && orphanedFiles.orphanedFiles.length > 0 && (
+              <button
+                onClick={() => handleCleanupOrphanedFiles(orphanedFiles.orphanedFiles.map(f => f.name))}
+                disabled={isLoadingOrphaned}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoadingOrphaned ? 'Cleaning up...' : 'Clean up all orphaned files'}
+              </button>
+            )}
+          </div>
+          
+          {isLoadingOrphaned ? (
+            <div className="text-center py-8">Loading orphaned files...</div>
+          ) : orphanedFiles ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-yellow-400 mb-2">Storage Statistics</h3>
+                  <p>Total orphaned files: {orphanedFiles.totalOrphaned}</p>
+                  <p>Total archived files: {orphanedFiles.totalArchived}</p>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-yellow-400 mb-2">Total Storage</h3>
+                  <p>Orphaned: {(orphanedFiles.orphanedFiles.reduce((acc, f) => acc + f.size, 0) / (1024 * 1024)).toFixed(2)} MB</p>
+                  <p>Archived: {(orphanedFiles.archivedFiles.reduce((acc, f) => acc + f.size, 0) / (1024 * 1024)).toFixed(2)} MB</p>
+                </div>
+              </div>
+              
+              {orphanedFiles.orphanedFiles.length > 0 && (
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-yellow-400 mb-4">Orphaned Files</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {orphanedFiles.orphanedFiles.map((file) => (
+                      <div key={file.name} className="bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm text-gray-300">{file.name}</p>
+                        <p className="text-xs text-gray-400 mt-1">Size: {(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                        <button
+                          onClick={() => handleCleanupOrphanedFiles([file.name])}
+                          className="mt-2 px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded-md text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {orphanedFiles.archivedFiles.length > 0 && (
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-yellow-400 mb-4">Archived Files</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {orphanedFiles.archivedFiles.map((file) => (
+                      <div key={file.name} className="bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm text-gray-300">{file.name}</p>
+                        <p className="text-xs text-gray-400 mt-1">Size: {(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {!orphanedFiles.orphanedFiles.length && !orphanedFiles.archivedFiles.length && (
+                <div className="text-center py-8 text-gray-400">
+                  No orphaned or archived files found.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              Click the "Orphaned Files" tab to load the list of orphaned files.
+            </div>
+          )}
+        </div>
+      ) : activeTab === 'archived' ? (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold text-yellow-400">Archived Images</h2>
+            {archivedImages.length > 0 && (
+              <button
+                onClick={handleFinalizeGallery}
+                disabled={isFinalizing}
+                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isFinalizing ? 'FINALISING...' : 'FINALISE GALLERY'}
+              </button>
+            )}
+          </div>
+          
+          {archivedImages.length > 0 ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {archivedImages.map((image) => (
+                  <div 
+                    key={image.id || 'unknown'} 
+                    className="relative aspect-video bg-gray-800 rounded-md overflow-hidden"
+                  >
+                    <Image
+                      src={image.src}
+                      alt="Archived image"
+                      fill
+                      className="object-cover"
+                    />
+                    
+                    {/* Restore and Delete buttons */}
+                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <p className="text-white mb-2">Restore to position:</p>
+                      <div className="flex flex-wrap justify-center gap-1 mb-3">
+                        {GALLERY_PLACEHOLDERS.map((filename, index) => {
+                          const position = index + 1;
+                          const isUsed = galleryImages.some(img => img.placeholderPosition === position);
+                          return (
+                            <button
+                              key={`restore-${image.id || 'unknown'}-to-${position}`}
+                              type="button"
+                              onClick={() => handleRestoreImage(image, position)}
+                              disabled={isUsed || isRestoring === image.id}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm
+                                ${isUsed 
+                                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                                  : 'bg-green-600 text-white hover:bg-green-700'}`}
+                            >
+                              {position}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteArchivedImage(image)}
+                        disabled={isDeleting === image.id}
+                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm mt-2"
+                      >
+                        {isDeleting === image.id ? 'Deleting...' : 'Delete Permanently'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              No archived images found.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold text-yellow-400">Current Gallery Layout</h2>
+            {isLoading && (
+              <div className="text-yellow-400 text-sm flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Refreshing Gallery...
+              </div>
+            )}
+          </div>
+          
+          <p className="text-gray-300 mb-4">
+            Click on any position to upload a new image or replace the existing one. Images over 1MB will be automatically optimized.
+            Changes will not appear on the public site until you click &quot;FINALISE GALLERY&quot;.
+          </p>
+          
+          {/* Gallery Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {GALLERY_PLACEHOLDERS.map((placeholder, index) => {
+            {GALLERY_PLACEHOLDERS.map((filename, index) => {
               const position = index + 1;
               const image = galleryImages.find(img => img.placeholderPosition === position);
               
               return (
-                <div key={position} className="flex flex-col p-4 border border-gray-700 rounded-md bg-black">
-                  <div className="relative w-full h-48 mb-2 bg-gray-800 flex items-center justify-center">
-                    {image ? (
-                      <Image 
-                        src={image.src} 
-                        alt={image.alt}
+                <div 
+                  key={`position-${position}`} 
+                  className="relative aspect-video bg-gray-800 rounded-md overflow-hidden"
+                >
+                  {/* Position Number */}
+                  <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded-md z-10">
+                    {position}
+                  </div>
+                  
+                  {/* Image or Placeholder */}
+                  {image ? (
+                    <>
+                      {/* This is the image */}
+                      <Image
+                        src={image.src}
+                        alt={`Gallery position ${position}`}
                         fill
-                        className="object-cover rounded-md"
+                        className="object-cover"
                       />
-                    ) : (
-                      <div className="text-gray-600">Empty Slot {position}</div>
-                    )}
-                    <div className="absolute top-2 right-2 bg-black bg-opacity-70 px-2 py-1 rounded text-sm">
-                      Position {position}
-                    </div>
-                  </div>
-                  <div className="mt-2 flex-grow">
-                    {image ? (
-                      <>
-                        <p className="font-medium text-yellow-400">Gallery Image {position}</p>
-                        <p className="text-sm text-yellow-300 truncate">{image.id}</p>
-                      </>
-                    ) : (
-                      <p className="font-medium text-gray-500">Empty Position</p>
-                    )}
-                  </div>
-                  <div className="mt-4 flex justify-between">
-                    {image ? (
-                      <button 
-                        onClick={() => handleArchiveImage(image)}
-                        disabled={isArchiving === position}
-                        className="px-3 py-1 text-red-400 hover:bg-red-900 hover:text-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isArchiving === position ? 'Archiving...' : 'Archive'}
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => handleFileSelect(position)}
-                        disabled={isUploading}
-                        className="px-3 py-1 text-green-400 hover:bg-green-900 hover:text-green-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isUploading && selectedPosition === position ? 'Uploading...' : 'Add Image'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-      
-      {/* Archived Images Section */}
-      <div className="bg-gray-900 p-6 rounded-lg shadow-md border border-gray-700">
-        <h2 className="text-xl font-bold mb-4 text-yellow-400">
-          Archived Images ({archivedImages.length})
-          <span className="text-sm font-normal ml-2 text-yellow-300">
-            Images that have been removed from the gallery but are still available to restore
-          </span>
-        </h2>
-        
-        {isLoading ? (
-          <p className="text-yellow-300 text-center py-6">Loading archived images...</p>
-        ) : archivedImages.length === 0 ? (
-          <p className="text-yellow-300 text-center py-6">No archived images.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {archivedImages.map((image) => {
-              // Find available positions for restoring
-              const usedPositions = galleryImages.map(img => img.placeholderPosition || 0);
-              const nextAvailable = findAvailablePosition(usedPositions);
-              
-              return (
-                <div key={image.id} className="flex flex-col p-4 border border-gray-700 rounded-md bg-black">
-                  <div className="relative w-full h-48 mb-2">
-                    <Image 
-                      src={image.src} 
-                      alt={image.alt}
-                      fill
-                      className="object-cover rounded-md"
-                    />
-                  </div>
-                  <div className="mt-2 flex-grow">
-                    <p className="font-medium text-yellow-400">Archived Image</p>
-                    <p className="text-sm text-yellow-300 truncate">{image.id}</p>
-                  </div>
-                  <div className="mt-4 space-y-2">
-                    {nextAvailable ? (
-                      <button 
-                        onClick={() => handleRestoreImage(image, nextAvailable)}
-                        disabled={isRestoring === image.id}
-                        className="w-full px-3 py-1 text-green-400 bg-gray-800 hover:bg-green-900 hover:text-green-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isRestoring === image.id ? 'Restoring...' : `Restore to Position ${nextAvailable}`}
-                      </button>
-                    ) : (
-                      <p className="text-sm text-red-400">Gallery full. Archive an image first.</p>
-                    )}
-                    
-                    <button 
-                      onClick={() => handleDeleteArchivedImage(image)}
-                      disabled={isDeleting === image.id}
-                      className="w-full px-3 py-1 text-red-400 bg-gray-800 hover:bg-red-900 hover:text-red-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      
+                      {/* Control Buttons */}
+                      <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <button 
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            onClick={() => handleFileSelect(position)}
+                          >
+                            Replace Image
+                          </button>
+                          <button
+                            type="button"
+                            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                            onClick={() => handleArchiveImage(image)}
+                          >
+                            {isArchiving === position ? 'Archiving...' : 'Archive Image'}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    // Empty slot
+                    <div 
+                      className="flex flex-col items-center justify-center h-full cursor-pointer p-4"
+                      onClick={() => handleFileSelect(position)}
                     >
-                      {isDeleting === image.id ? 'Deleting...' : 'Delete Permanently'}
-                    </button>
-                  </div>
+                      <div className="text-gray-400 mb-3">Empty Position</div>
+                      <button 
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                      >
+                        Upload Image
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
-        )}
+        </div>
+      )}
+      
+      <div className="mt-8 text-center">
+        <Link href="/admin/dashboard" className="text-yellow-400 hover:text-yellow-300">
+          ← Back to Dashboard
+        </Link>
       </div>
     </div>
   )
