@@ -27,7 +27,7 @@ export default function Hero() {
         <div className="flex justify-center items-center pt-20" style={{ height: '60%' }}>
           <div style={{ width: '65vw', maxWidth: '600px', height: '65vw', maxHeight: '600px' }} className="relative">
             <Image 
-              src="/images/OJ.png"
+              src="/images/oj.png"
               alt="OJ Logo"
               fill
               priority
