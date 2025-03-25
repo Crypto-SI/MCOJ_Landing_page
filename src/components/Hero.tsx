@@ -22,47 +22,48 @@ export default function Hero() {
       <div className="absolute inset-0 bg-gradient-to-b from-brand-black/80 via-brand-navy/70 to-brand-black/80 z-10" />
       
       {/* Content */}
-      <div className="relative z-20 container mx-auto px-4 text-center">
-        {/* Logo */}
-        <div className="mb-6 flex justify-center">
-          <div className="relative w-40 h-40 md:w-60 md:h-60">
+      <div className="relative z-20 container mx-auto px-4 text-center h-full flex flex-col">
+        {/* Logo - using new image file */}
+        <div className="flex justify-center items-center pt-20" style={{ height: '60%' }}>
+          <div style={{ width: '65vw', maxWidth: '600px', height: '65vw', maxHeight: '600px' }} className="relative">
             <Image 
-              src="/images/ojsparkles.png-removebg-preview.png"
-              alt="MC OJ Logo"
+              src="/images/OJ.png"
+              alt="OJ Logo"
               fill
               priority
               className="object-contain drop-shadow-2xl"
-              sizes="(max-width: 768px) 160px, 240px"
+              sizes="65vw"
             />
           </div>
         </div>
-        <h1 className="text-6xl md:text-8xl font-bank-gothic text-brand-gold mb-6 drop-shadow-lg hover:gold-shimmer">
-          MC OJ
-        </h1>
-        <p className="text-xl md:text-2xl font-montserrat text-white mb-8 drop-shadow-md">
-          Bringing the golden touch to UK Garage
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link 
-            href="#booking" 
-            onClick={(e) => {
-              e.preventDefault();
-              document.querySelector('#booking')?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="btn-primary"
-          >
-            Book Now
-          </Link>
-          <Link 
-            href="#events"
-            onClick={(e) => {
-              e.preventDefault();
-              document.querySelector('#events')?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="btn-secondary"
-          >
-            View Events
-          </Link>
+        
+        {/* Text in separate container with fixed position */}
+        <div className="flex-grow flex flex-col justify-end pb-16">
+          <p className="text-xl md:text-2xl font-montserrat text-white mb-8 drop-shadow-md">
+            Bringing the golden touch to UK Garage
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link 
+              href="#booking" 
+              onClick={(e) => {
+                e.preventDefault();
+                document.querySelector('#booking')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="btn-primary text-2xl md:text-3xl px-8 py-4 md:px-12 md:py-6"
+            >
+              Book Now
+            </Link>
+            <Link 
+              href="#events"
+              onClick={(e) => {
+                e.preventDefault();
+                document.querySelector('#events')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="btn-secondary text-2xl md:text-3xl px-8 py-4 md:px-12 md:py-6"
+            >
+              View Events
+            </Link>
+          </div>
         </div>
       </div>
     </section>

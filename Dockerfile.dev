@@ -1,0 +1,12 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# We don't copy the source code here because we'll mount it as a volume
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"] 
