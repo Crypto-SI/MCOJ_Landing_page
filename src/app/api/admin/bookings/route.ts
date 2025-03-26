@@ -1,188 +1,192 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { 
-  getBookingRequests, 
-  updateBookingStatus, 
-  deleteBookingRequest,
-  BookingRequest
-} from '@/utils/bookingUtils';
+import { getBookingRequests, updateBookingStatus, deleteBookingRequest } from '@/utils/bookingUtils';
+import { verifyAdminAuth } from '@/utils/authUtils';
 
 /**
- * Check if the request is authenticated
- */
-function isAuthenticated(): boolean {
-  const cookieStore = cookies();
-  const authCookie = cookieStore.get('mcoj_admin_authenticated');
-  return !!authCookie && authCookie.value === 'true';
-}
-
-/**
+ * GET handler for fetching booking requests
  * GET /api/admin/bookings
- * Get all booking requests with optional filtering
+ * 
+ * Query parameters:
+ * - status: Filter by status (optional)
+ * - fromDate: Filter by date range start (optional)
+ * - toDate: Filter by date range end (optional)
+ * - limit: Number of results to return (optional, default 100)
+ * - offset: Offset for pagination (optional, default 0)
  */
 export async function GET(request: NextRequest) {
-  // Check authentication
-  if (!isAuthenticated()) {
-    return NextResponse.json(
-      { success: false, message: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
   try {
+    // Verify admin authentication
+    const isAuthenticated = await verifyAdminAuth(request);
+    if (!isAuthenticated) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Parse query parameters
     const { searchParams } = new URL(request.url);
+    const statusParam = searchParams.get('status');
+    const fromDate = searchParams.get('fromDate');
+    const toDate = searchParams.get('toDate');
+    const limitParam = searchParams.get('limit');
+    const offsetParam = searchParams.get('offset');
+
+    // Convert parameters to proper format
+    const filters: any = {};
     
-    // Parse filters from query parameters
-    const filters: {
-      status?: BookingRequest['status'] | BookingRequest['status'][];
-      fromDate?: string;
-      toDate?: string;
-      limit?: number;
-      offset?: number;
-    } = {};
-    
-    // Extract status filter (can be multiple)
-    const statusParam = searchParams.getAll('status');
-    if (statusParam.length > 0) {
-      if (statusParam.length === 1) {
-        filters.status = statusParam[0] as BookingRequest['status'];
-      } else {
-        filters.status = statusParam as BookingRequest['status'][];
-      }
+    if (statusParam) {
+      filters.status = statusParam;
     }
     
-    // Extract date range filters
-    const fromDate = searchParams.get('fromDate');
-    if (fromDate) filters.fromDate = fromDate;
+    if (fromDate) {
+      filters.fromDate = fromDate;
+    }
     
-    const toDate = searchParams.get('toDate');
-    if (toDate) filters.toDate = toDate;
+    if (toDate) {
+      filters.toDate = toDate;
+    }
     
-    // Extract pagination
-    const limit = searchParams.get('limit');
-    if (limit) filters.limit = parseInt(limit, 10);
+    if (limitParam) {
+      filters.limit = parseInt(limitParam, 10);
+    }
     
-    const offset = searchParams.get('offset');
-    if (offset) filters.offset = parseInt(offset, 10);
+    if (offsetParam) {
+      filters.offset = parseInt(offsetParam, 10);
+    }
 
     // Fetch booking requests
     const result = await getBookingRequests(filters);
-    
+
     if (result.success) {
-      return NextResponse.json({ success: true, bookings: result.data });
+      return NextResponse.json({
+        success: true,
+        data: result.data,
+      });
     } else {
       return NextResponse.json(
-        { success: false, message: result.error || 'Failed to fetch booking requests' },
+        { success: false, error: result.error },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error('Error fetching booking requests:', error);
     return NextResponse.json(
-      { success: false, message: 'An unexpected error occurred' },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
 }
 
 /**
- * PATCH /api/admin/bookings
- * Update a booking request status
+ * PUT handler for updating booking status
+ * PUT /api/admin/bookings
+ * 
+ * Request body:
+ * - id: Booking ID
+ * - status: New status value
  */
-export async function PATCH(request: NextRequest) {
-  // Check authentication
-  if (!isAuthenticated()) {
-    return NextResponse.json(
-      { success: false, message: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
+export async function PUT(request: NextRequest) {
   try {
-    const data = await request.json();
-    const { id, status } = data;
-    
+    // Verify admin authentication
+    const isAuthenticated = await verifyAdminAuth(request);
+    if (!isAuthenticated) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Parse request body
+    const body = await request.json();
+    const { id, status } = body;
+
+    // Validate required fields
     if (!id || !status) {
       return NextResponse.json(
-        { success: false, message: 'Missing required fields: id and status' },
+        { success: false, error: 'Missing required fields: id and status' },
         { status: 400 }
       );
     }
-    
-    // Validate status value
-    const validStatuses = ['new', 'contacted', 'booked', 'declined', 'canceled'];
-    if (!validStatuses.includes(status)) {
-      return NextResponse.json(
-        { success: false, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` },
-        { status: 400 }
-      );
-    }
-    
+
     // Update booking status
-    const result = await updateBookingStatus(id, status as BookingRequest['status']);
-    
+    const result = await updateBookingStatus(id, status);
+
     if (result.success) {
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Booking status updated successfully'
+      return NextResponse.json({
+        success: true,
       });
     } else {
       return NextResponse.json(
-        { success: false, message: result.error || 'Failed to update booking status' },
+        { success: false, error: result.error },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error('Error updating booking status:', error);
     return NextResponse.json(
-      { success: false, message: 'An unexpected error occurred' },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
 }
 
 /**
+ * DELETE handler for deleting a booking request
  * DELETE /api/admin/bookings
- * Delete a booking request
+ * 
+ * Request body:
+ * - id: Booking ID
  */
 export async function DELETE(request: NextRequest) {
-  // Check authentication
-  if (!isAuthenticated()) {
-    return NextResponse.json(
-      { success: false, message: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    
+    // Verify admin authentication
+    const isAuthenticated = await verifyAdminAuth(request);
+    if (!isAuthenticated) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Parse request body
+    const body = await request.json();
+    const { id } = body;
+
+    // Validate required fields
     if (!id) {
       return NextResponse.json(
-        { success: false, message: 'Missing required parameter: id' },
+        { success: false, error: 'Missing required field: id' },
         { status: 400 }
       );
     }
-    
-    // Delete the booking request
+
+    // Delete booking request
     const result = await deleteBookingRequest(id);
-    
+
     if (result.success) {
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Booking request deleted successfully' 
+      return NextResponse.json({
+        success: true,
       });
     } else {
       return NextResponse.json(
-        { success: false, message: result.error || 'Failed to delete booking request' },
+        { success: false, error: result.error },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error('Error deleting booking request:', error);
     return NextResponse.json(
-      { success: false, message: 'An unexpected error occurred' },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

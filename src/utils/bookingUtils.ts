@@ -5,12 +5,12 @@ export interface BookingRequest {
   id?: string;
   name: string;
   email: string;
-  phone?: string;
+  phone?: string | null;
   venue: string;
   event_date: string; // ISO format: 'YYYY-MM-DD'
-  event_time?: string;
-  event_type?: string;
-  additional_info?: string;
+  event_time?: string | null;
+  event_type?: string | null;
+  additional_info?: string | null;
   status?: 'new' | 'contacted' | 'booked' | 'declined' | 'canceled';
   created_at?: string;
   updated_at?: string;

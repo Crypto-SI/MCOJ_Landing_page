@@ -232,11 +232,11 @@ export default function EventsDiary() {
         <div className="mt-16 text-center">
           <h3 className="text-xl font-bank-gothic text-brand-gold mb-4">Book MC OJ for Your Event</h3>
           <p className="text-white mb-6">
-            MC OJ is available for bookings at a flat rate of <span className="text-brand-gold font-bold">£100 per appearance</span>.
+            MC OJ is available for bookings at your next event. Fill out our booking form to inquire about availability.
           </p>
           <Link href="#booking" className="btn-secondary inline-flex items-center">
             <CalendarIcon className="h-5 w-5 mr-2" />
-            Check Availability & Book
+            Inquire About Booking
           </Link>
         </div>
       </div>
